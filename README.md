@@ -21,11 +21,12 @@ Show events from the database by: meta-data, eType, time range, or first occuren
 ## Configuration
 No preconfiguration is required. All options can be specified as command line argumants. However, see **Setup** section below for information on configuring your .zerc file.
 ##### Setup
+
 For convenience, your API token and your Zebrium instance URL can be specified in the .zerc file located in your home directory.
 **Format of .zerc file**
 ```
 auth=YOUR_API_TOKEN
-url=https://YOUR_ZEINSTANCE.zebrium.com
+url=https://YOUR_ZE_INSTANCE_NAME.zebrium.com
 ```
 ##### Environment Variables
 
