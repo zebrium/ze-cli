@@ -1,7 +1,5 @@
 # ze-cli
-
 Zebrium's command line interface for uploading log events from files or streams, viewing log events and the definitions of event types in the database.
-
 ## Features
 ##### upload
 Upload log event data to your Zebrium database instance from a file or stream (stdin) with appropriate meta data.
@@ -21,18 +19,19 @@ Show events from the database by: meta-data, eType, time range, or first occuren
 ## Configuration
 No preconfiguration is required. All options can be specified as command line argumants. However, see **Setup** section below for information on configuring your .zerc file.
 ##### Setup
+For convenience, your API token and your Zebrium instance URL can be specified in your $HOME/.zerc file.
 
-For convenience, your API token and your Zebrium instance URL can be specified in the .zerc file located in your home directory.
-
-**Format of .zerc file**
+Example .zerc file:
 ```
 auth=YOUR_API_TOKEN
 url=https://YOUR_ZE_INSTANCE_NAME.zebrium.com
 ```
 ##### Environment Variables
-
+None
 ## Testing your installation
 
 ## Contributors
-
+* Larry Lancaster
+* Dara Hazeghi
+* Rod Bagg
 ## Contributing
