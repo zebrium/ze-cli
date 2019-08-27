@@ -14,8 +14,8 @@ Show events from the database by: meta-data, eType, time range, or first occuren
 * API token from Zebrium
 * URL to your instance of Zebrium
 ##### Installing
-* git clone https://github.com/zebrium/ze-cli.git
-* move bin/ze to appropriate bin directory in your PATH
+* `git clone https://github.com/zebrium/ze-cli.git`
+* move `bin/ze` to appropriate bin directory in your PATH
 ## Configuration
 No preconfiguration is required. All options can be specified as command line argumants. However, see **Setup** section below for information on configuring your .zerc file.
 ##### Setup
@@ -29,7 +29,7 @@ url=https://YOUR_ZE_API_INSTANCE_NAME.zebrium.com
 ##### Environment Variables
 None
 ## Usage
-Use ze help for command complete list of command operations and options
+Use `ze help` for a complete list of command operations and options
 ```
 ze help
 ```
