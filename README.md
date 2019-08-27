@@ -37,7 +37,6 @@ ze help
 Use `ze up` to ingest log events into your Zebrium instance.
 ```
 ze up --file=/var/log/messages --node=server01 --log=varlogmsgs
-
 ```
 Use `ze cat` to show events already ingested into your Zebrium instance.
 ```
