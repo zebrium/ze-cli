@@ -1,0 +1,538 @@
+#!/usr/bin/env perl
+
+use strict;
+use locale;
+
+use IO::File;
+
+my ($HOME, $VERB) = (scalar(length($ENV{'HOME'}) ? $ENV{'HOME'} : '~'), shift(@ARGV));
+
+my ($AUTH, $URL) = @{rc()};
+
+my $UP_SMAP = {
+	'log'    => {'p'=>qr/[a-zA-Z0-9\_\-]++/xs, 'c'=>'[a-zA-Z0-9_-]',    'h'=>'X-Ze-Stream-Name', 'l'=>32, },
+	'branch' => {'p'=>qr/[\x21-\x7e]++/xs,     'c'=>'ascii 0x21-0x7e',  'h'=>'X-Ze-Source-Meta', 'l'=>32, },
+	'build'  => {'p'=>qr/[\x21-\x7e]++/xs,     'c'=>'ascii 0x21-0x7e',  'h'=>'X-Ze-Source-Pool', 'l'=>64, },
+	'node'   => {'p'=>qr/[\x21-\x7e]++/xs,     'c'=>'ascii 0x21-0x7e',  'h'=>'X-Ze-Source-UUID', 'l'=>64, },
+	'role'   => {'p'=>qr/[\w\-\:\.\+]++/xs,    'c'=>'[a-zA-Z0-9_-:.+]', 'h'=>'X-Ze-Source-Role', 'l'=>32, },
+	'dtz'    => {'p'=>qr/[\w\/\+\-\:]++/xs,    'c'=>'[a-zA-Z0-9_/+-:]', 'h'=>'X-Ze-Window-DFTZ', 'l'=>32, },
+	'tsuite' => {'p'=>qr/[\w\-\:\.\+]++/xs,    'c'=>'[a-zA-Z0-9_-:.+]', 'h'=>'X-Ze-Window-Meta', 'l'=>64, },
+	'tname'  => {'p'=>qr/[\w\-\:\.\+]++/xs,    'c'=>'[a-zA-Z0-9_-:.+]', 'h'=>'X-Ze-Window-Name', 'l'=>64, },
+	'trun'   => {'p'=>qr/\d++/xs,              'c'=>'digit',            'h'=>'X-Ze-Window-UUID', 'l'=>8,  },
+};
+my $UP_SKEYS = [keys %$UP_SMAP];
+
+my $UP_DMAP = {
+	'X-Ze-Source-UUID' => 'node00',
+	'X-Ze-Source-Pool' => 'build00',
+	'X-Ze-Window-Name' => 'my_test',
+	'X-Ze-Window-UUID' => '0',
+};
+
+my $UP_DKEYS = [keys %$UP_DMAP];
+
+# AT SOME POINT SHOULD MOVE OTHER Ze-Query TYPE HEADERS INTO THESE STRUCTURES, TOO
+my $CAT_SMAP = {
+	'log'    => {'p'=>qr/[a-zA-Z0-9\_\,\-]++/xs, 'c'=>'[a-zA-Z0-9_-]',    'h'=>'X-Ze-Query-Log',    'l'=>32, },
+	'branch' => {'p'=>qr/[\x21-\x7e]++/xs,       'c'=>'ascii 0x21-0x7e',  'h'=>'X-Ze-Query-Branch', 'l'=>32, },
+	'build'  => {'p'=>qr/[\x21-\x7e]++/xs,       'c'=>'ascii 0x21-0x7e',  'h'=>'X-Ze-Query-Build',  'l'=>64, },
+	'node'   => {'p'=>qr/[\x21-\x7e]++/xs,       'c'=>'ascii 0x21-0x7e',  'h'=>'X-Ze-Query-Node',   'l'=>64, },
+#	'role'   => {'p'=>qr/[\w\-\:\.\,\+]++/xs,    'c'=>'[a-zA-Z0-9_-:.+]', 'h'=>'X-Ze-Query-Role',   'l'=>32, },
+	'tsuite' => {'p'=>qr/[\w\-\:\.\,\+]++/xs,    'c'=>'[a-zA-Z0-9_-:.+]', 'h'=>'X-Ze-Query-Tsuite', 'l'=>64, },
+	'tname'  => {'p'=>qr/[\w\-\:\.\,\+]++/xs,    'c'=>'[a-zA-Z0-9_-:.+]', 'h'=>'X-Ze-Query-Tname',  'l'=>64, },
+	'trun'   => {'p'=>qr/[\d\,]++/xs,            'c'=>'digit',            'h'=>'X-Ze-Query-Trun',   'l'=>8,  },
+};
+my $CAT_SKEYS = [keys %$CAT_SMAP];
+
+my $CAT_DMAP = {
+};
+
+my $CAT_DKEYS = [keys %$CAT_DMAP];
+
+main();
+
+exit(0);
+
+sub main() {
+
+	if($VERB eq 'help') {
+		print STDERR usage(), chr(10) or die("$!");
+		exit(0);
+	}
+
+	common();
+
+	if($VERB eq 'up') {
+		up();
+	} elsif($VERB eq 'cat') {
+		cat();
+	} elsif($VERB eq 'def') {
+		zdef();
+	} elsif($VERB eq 'close') {
+		print STDERR "close is no longer supported";
+		exit(0)
+	} elsif($VERB eq 'sql') {
+		sql();
+	} else {
+		print STDERR usage(), chr(10) or die("$!");
+		exit(1);
+	}
+
+	return();
+}
+
+sub common() {
+
+	for(my $i=0;$i<scalar(@ARGV);$i++) {
+
+		my $arg = $ARGV[$i];
+		if($arg=~m/^\-\-auth\=(.++)$/xs) {
+			$AUTH = $1;
+			unless($AUTH=~m/^[a-zA-Z\d]++$/xs) {
+				die("$0: auth token should be alphanumeric");
+			}
+			splice(@ARGV,$i,1); $i--; next;
+		} elsif($arg=~m/^\-\-url\=(.++)$/xs) {
+			$URL = $1;
+			unless($URL=~m/^[\w\,\.\+\&\=\%\:\/\-]++$/xs) {
+				die("$0: url should only have chars [a-zA-Z0-9i_,.+&=%:/-]");
+			}
+			splice(@ARGV,$i,1); $i--; next;
+		}
+	}
+
+	$URL=~s/\/++$//xs;
+	unless(length($URL)) {
+		die("$0: url must be set with switch --url=<url> or else the line url=<url> must be present in $HOME/.zerc.");
+	}
+
+	unless(length($AUTH)) {
+		die("$0: auth must be set with --auth=<auth token> or else the line auth=<auth token> in $HOME/.zerc.");
+	}
+
+	return();
+}
+
+sub zdef() {
+
+	my ($amap, $curl, $ze_hdrs) = ({}, undef, undef);
+
+	for(my $i=0;$i<scalar(@ARGV);$i++) {
+
+		my $arg = $ARGV[$i];
+		if($arg=~m/^\-\-etype\=(.++)$/xs) {
+			$amap->{'X-Ze-Query-Etype'} = $1;
+		} else {
+			die("$0: unsupported arg $arg");
+		}
+	}
+	$curl = `which curl`; chomp($curl);
+	unless(length($curl)) { die("No curl found in PATH."); }
+
+	$URL=~s/\/(?:sql|def|close|ask|cat|post|api|)\/?$//xs;
+	$URL=join('/',($URL,'api/v1/def'));
+
+	$ze_hdrs = [];
+	my $amap_keys = [keys %$amap];
+	foreach my $key(@$amap_keys) {
+		if($key=~m/^X\-Ze\-/xs) {
+			push(@$ze_hdrs,'-H');
+			push(@$ze_hdrs,join(': ',($key,$amap->{$key})));
+		}
+	}
+
+	if(system(
+		$curl,
+		'--silent',
+		'-X',
+		'POST',
+		'-S',
+		'--insecure',
+		'-H', 	join('',('Authorization: Token ',$AUTH)),
+		@$ze_hdrs,
+		'-H',	'Content-Type: application/octet-stream',
+		$URL
+	)) { exit(1); }
+	return();
+}
+
+sub cat() {
+
+	my ($amap, $curl, $ze_hdrs) = (zargs($CAT_SMAP, $CAT_SKEYS), undef, undef);
+
+	for(my $i=0;$i<scalar(@ARGV);$i++) {
+
+		my $arg = $ARGV[$i];
+		if($arg=~m/^\-\-fmt\=(.++)$/xs) {
+			$amap->{'X-Ze-Query-Format'} = $1;
+		} elsif($arg=~m/^\-\-lim\=(.++)$/xs) {
+			$amap->{'X-Ze-Query-Limit'} = $1;
+		} elsif($arg=~m/^\-\-etype\=(.++)$/xs) {
+			$amap->{'X-Ze-Query-Etype'} = $1;
+		} elsif($arg=~m/^\-\-time\=(.++)$/xs) {
+			$amap->{'X-Ze-Query-Time'} = $1;
+		} elsif($arg=~m/^\-\-new$/xs) {
+			$amap->{'X-Ze-Query-New'} = 1;
+		} else {
+			die("$0: unsupported arg $arg");
+		}
+	}
+
+	$curl = `which curl`; chomp($curl);
+	unless(length($curl)) { die("No curl found in PATH."); }
+
+	$URL=~s/\/(?:sql|def|close|ask|cat|post|api|)\/?$//xs;
+	$URL=join('/',($URL,'api/v1/cat'));
+
+	dcheck($amap, $CAT_DMAP, $CAT_DKEYS);
+
+	for(my $i=0;$i<scalar(@ARGV);$i++) {
+
+		my $arg = $ARGV[$i];
+		if($arg=~m/^\-\-fmt\=(.++)$/xs) {
+			$amap->{'X-Ze-Query-Format'} = $1;
+		} elsif($arg=~m/^\-\-lim\=(.++)$/xs) {
+			$amap->{'X-Ze-Query-Limit'} = $1;
+		} elsif($arg=~m/^\-\-etype\=(.++)$/xs) {
+			$amap->{'X-Ze-Query-Etype'} = $1;
+		} elsif($arg=~m/^\-\-time\=(.++)$/xs) {
+			$amap->{'X-Ze-Query-Time'} = $1;
+		} elsif($arg=~m/^\-\-new$/xs) {
+			$amap->{'X-Ze-Query-New'} = 1;
+		} else {
+			die("$0: unsupported arg $arg");
+		}
+	}
+
+	$ze_hdrs = [];
+	my $amap_keys = [keys %$amap];
+	foreach my $key(@$amap_keys) {
+		if($key=~m/^X\-Ze\-/xs) {
+			push(@$ze_hdrs,'-H');
+			push(@$ze_hdrs,join(': ',($key,$amap->{$key})));
+		}
+	}
+
+	if(system(
+		$curl,
+		'--silent',
+		'-S',
+		'--insecure',
+		'-H', 	join('',('Authorization: Token ',$AUTH)),
+		@$ze_hdrs,
+		$URL
+	)) { exit(1); }
+
+	return();
+}
+
+sub sql() {
+
+	my ($fn, $amap, $curl, $curl_fn, $ze_hdrs) = (undef, {}, undef, undef, undef);
+
+	$curl = `which curl`; chomp($curl);
+	unless(length($curl)) { die("No curl found in PATH."); }
+
+	for(my $i=0;$i<scalar(@ARGV);$i++) {
+
+		my $arg = $ARGV[$i];
+		if($arg=~m/^\-\-file\=(.++)$/xs) {
+			$fn = $1;
+			unless($fn=~m/^[\x21-\x7e]++$/xs) {
+				die("$0: file should be ascii non-whitespace");
+			}
+            if(! -e $fn) {
+                die("$0: file $fn does not exist");
+            }
+			splice(@ARGV,$i,1); $i--; next;
+		} elsif($arg=~m/^\-\-file$/xs) {
+            die("$0: file argument must be specified (--file=...)");
+        }
+	}
+
+	for(my $i=0;$i<scalar(@ARGV);$i++) {
+
+		my $arg = $ARGV[$i];
+		if($arg=~m/^\-\-fmt\=(.++)$/xs) {
+			$amap->{'X-Ze-Query-Format'} = $1;
+		} elsif($arg=~m/^\-\-query\=(.++)$/xs) {
+			my $qtxt = $1;
+			if(defined $fn) {
+				die("$0: Cannot specify both file and query");
+			}
+			unless($qtxt=~m/\;\s*$/xs) { $qtxt=~s/\s*$/\;/xs; }
+			$fn = join('',('/tmp/',$$,rand()));
+			my $fh = new IO::File();
+			open($fh,">$fn") or die("$!");
+			print $fh $qtxt,chr(10) or die("$!");
+			close($fh) or die("$!");
+		} else {
+			die("$0: unsupported arg $arg");
+		}
+
+	}
+
+	$URL=~s/\/(?:sql|def|close|ask|cat|post|api|)\/?$//xs;
+	$URL=join('/',($URL,'api/v1/sql'));
+
+	$curl_fn = length($fn) ? $fn : '-';
+
+	$ze_hdrs = [];
+	my $amap_keys = [keys %$amap];
+	foreach my $key(@$amap_keys) {
+		if($key=~m/^X\-Ze\-/xs) {
+			push(@$ze_hdrs,'-H');
+			push(@$ze_hdrs,join(': ',($key,$amap->{$key})));
+		}
+	}
+
+	if(system(
+		$curl,
+		'--silent',
+		'-S',
+		'--insecure',
+		'-H', 	join('',('Authorization: Token ',$AUTH)),
+		@$ze_hdrs,
+		'-H',	'Content-Type: application/octet-stream',
+		'-H',	'Transfer-Encoding: chunked',
+		'-X',	'POST',
+		'-T',	$curl_fn,
+		#'--data-binary',
+		#join('',('@',$curl_fn)),
+		$URL
+	)) { exit(1); }
+
+	return();
+}
+
+sub up() {
+
+	my ($fn, $amap, $curl, $curl_fn, $ze_hdrs) = (undef, zargs($UP_SMAP, $UP_SKEYS), undef, undef, undef);
+
+	$curl = `which curl`; chomp($curl);
+	unless(length($curl)) { die("No curl found in PATH."); }
+
+	for(my $i=0;$i<scalar(@ARGV);$i++) {
+
+		my $arg = $ARGV[$i];
+		if($arg=~m/^\-\-file\=(.++)$/xs) {
+			$fn = $1;
+			unless($fn=~m/^[\x21-\x7e]++$/xs) {
+				die("$0: file should be ascii non-whitespace");
+			}
+            if(! -e $fn) {
+                die("$0: file $fn does not exist");
+            }
+			splice(@ARGV,$i,1); $i--; next;
+		} elsif($arg=~m/^\-\-file$/xs) {
+            die("$0: file argument must be specified (--file=...)");
+        }
+	}
+
+	unless(scalar(keys %$amap)) {
+		print STDERR "$0: WARNING: No metadata switches set. That's fine for a quick test, but probably not what you want in real use. Run 'ze help' for more information.\n" or die("$!");
+	}
+
+	$amap->{'X-Ze-Stream-Type'} = 'native';
+	if(length($fn)) {
+		$amap->{'X-Ze-Stream-Type'} = 'file';
+		unless(length($amap->{'X-Ze-Stream-Name'})) {
+			if($fn=~m/(?=[^\/]++$)([a-zA-Z]{3,})/xs) {
+				$amap->{'X-Ze-Stream-Name'} = lc($1);
+			} else {
+				$amap->{'X-Ze-Stream-Name'} = 'stream';
+			}
+		}
+	}
+
+	$URL=~s/\/(?:sql|def|close|ask|cat|post|api|)\/?$//xs;
+	$URL=join('/',($URL,'api/v1/post'));
+
+	dcheck($amap, $UP_DMAP, $UP_DKEYS);
+
+	$curl_fn = length($fn) ? $fn : '-';
+
+	$ze_hdrs = [];
+	my $amap_keys = [keys %$amap];
+	foreach my $key(@$amap_keys) {
+		if($key=~m/^X\-Ze\-/xs) {
+			push(@$ze_hdrs,'-H');
+			push(@$ze_hdrs,join(': ',($key,$amap->{$key})));
+		}
+	}
+
+	if(system(
+		$curl,
+		'--silent',
+		'-S',
+		'--insecure',
+		'-H', 	join('',('Authorization: Token ',$AUTH)),
+		@$ze_hdrs,
+		'-H',	'Content-Type: application/octet-stream',
+		'-H',	'Transfer-Encoding: chunked',
+		'-X',	'POST',
+		'-T',	$curl_fn,
+		#'--data-binary',
+		#join('',('@',$curl_fn)),
+		$URL
+	)) { exit(1); }
+
+	return();
+}
+
+sub zargs($$) {
+
+	my ($amap, $smap, $skeys) = ({}, splice(@_, 0, 2));
+
+	for(my $i=0;$i<scalar(@ARGV);$i++) {
+
+		my $arg = $ARGV[$i];
+		for(my $j=0;$j<scalar(@$skeys);$j++) {
+
+			my $s = $skeys->[$j];
+			if(substr($arg,0,length($s)+3) eq "--$s=") {
+
+				my $m = $smap->{$s};
+				my ($p,$c,$h,$l) = ($m->{'p'},$m->{'c'},$m->{'h'},$m->{'l'});
+
+				if(length($c)) {
+					if($arg=~m/^\-\-$s\=(${p})$/xs) {
+						my $tmp = $1;
+						if(length($tmp) > $l) {
+							die("$0: arg $arg: up to $l characters allowed");
+						}
+						$amap->{$h} = $tmp;
+						splice(@$skeys,$j,1); $j--; next;
+					} else {
+						die("$0: arg $arg: only $c characters allowed");
+					}
+				} else {
+					if($arg=~m/^\-\-$s$/xs) {
+						$amap->{$h} = 1;
+						splice(@$skeys,$j,1); $j--; next;
+					} else {
+						die("$0: arg $arg: no assignment allowed (flag only)");
+					}
+				}
+			}
+		}
+	}
+
+	return($amap);
+}
+
+sub dcheck($$$) {
+
+	my ($amap, $dmap, $dkeys) = splice(@_, 0, 3);
+
+	for(my $i=0;$i<scalar(@$dkeys);$i++) {
+
+		my $hdr = $dkeys->[$i];
+		if(length($dmap->{$hdr}) && !length($amap->{$hdr})) {
+
+			$amap->{$hdr} = $dmap->{$hdr};
+		}
+	}
+
+	return();
+}
+
+sub rc() {
+
+	my ($fh, $auth, $url) = (new IO::File(), undef, undef);
+
+	if(open($fh,"<$HOME/.zerc")) {
+
+		while(my $line = readline($fh)) {
+			if($line=~m/^auth\=([a-zA-Z\d]++)\s*+$/xs) {
+				$auth = $1;
+			} elsif($line=~m/^url\=([\w\-\,\.\+\&\=\%\:\/]++)\s*+$/xs) {
+				$url = $1;
+			}
+		}
+
+		close($fh);
+		undef($fh);
+		$! = '';
+
+	} else {
+
+		undef($fh);
+		$! = '';
+	}
+
+	return([$auth,$url]);
+}
+
+sub usage() {
+	# cat [--fmt=<(csv|json|pp)>] [--lim=<int>] [--log=<log>] [--etype=<etype>] [--time=<time>] [--new]
+	# def [--fmt=<(csv|json|pp)>] [--lim=<int>] [--log=<log>] [--etype=<etype>]
+	# sql [--fmt=<(csv|json|pp)>]
+	return(join(chr(10),(
+		"ze help - get help on ze usage",
+		"",
+		"ze up - upload data to Zebrium",
+		"",
+		"  ze up                                                                        \\",
+		"    [--file=<path>] [--auth=<token>] [--url=<url>] [--log=<log>] [--dtz=<tz>]  \\",
+		"    [--node=<node>] [--role=<role>] [--branch=<branch>] [--build=<build>]      \\",
+		"    [--tsuite=<test suite>] [--tname=<test name>] [--trun=<test run #>]",
+		"",
+		"    --file   - omit to read from STDIN",
+		"    --auth   - omit to look for auth=<token> line in $HOME/.zerc",
+		"    --url    - omit to look for url=<url> line in $HOME/.zerc",
+		"    --log    - omit to use use base name from file=<path> (or 'stream' if STDIN)",
+		"    --dtz    - timezone to use for logs without time zone (default: GMT)",
+		"    --node   - node name or container id (default: 'node00')",
+		"    --role   - node role in test, e.g.: 'test','slave','client' (default: '-')",
+		"    --branch - version control branch (default: '-')",
+		"    --build  - build id (default: 'build00')",
+		"    --tsuite - test suite name (default: '-')",
+		"    --tname  - test name (default: 'my_test')",
+		"    --trun   - index indicating # of test re-runs (default: 0)",
+		"",
+		"ze sql - run SQL command",
+		"",
+		"  ze sql                                                                       \\",
+		"    [--file=<path>] [--auth=<token>] [--url=<url>] [--query=<query>]           \\",
+		"    [--fmt=(csv|json|pp|raw)>]",
+		"",
+		"    --file   - omit to read from STDIN or query=<query>",
+		"    --auth   - omit to look for auth=<token> line in $HOME/.zerc",
+		"    --url    - omit to look for url=<url> line in $HOME/.zerc",
+		"    --query  - omit to read from STDIN or file=<file>",
+		"    --fmt    - show lines raw, or along with etype in csv/json/pretty-print",
+		"",
+		"ze def - show etype definition",
+		"",
+		"  ze def --etype=<etype> [--auth=<token>] [--url=<url>]                        \\",
+		"",
+		"    --etype  - show only events of type <etype>",
+		"    --auth   - omit to look for auth=<token> line in $HOME/.zerc",
+		"    --url    - omit to look for url=<url> line in $HOME/.zerc",
+		"",
+		"ze cat - show logs",
+		"",
+		"  ze cat                                                                       \\",
+		"    [--auth=<token>] [--url=<url>] [--fmt=(csv|json|pp|raw)>] [--lim=<int>]    \\",
+		"    [--node=<node>] [--role=<role>] [--branch=<branch>] [--build=<build>]      \\",
+		"    [--tsuite=<test suite>] [--tname=<test name>] [--trun=<test run #>]        \\",
+		"    [--log=<log>] [--etype=<etype>] [--new] [--time=<yyyy-mm-dd[Thh[:mi[:ss]]]>]",
+		"",
+		"    --auth   - omit to look for auth=<token> line in $HOME/.zerc",
+		"    --url    - omit to look for url=<url> line in $HOME/.zerc",
+		"    --fmt    - show lines raw, or along with etype in csv/json/pretty-print",
+		"    --lim    - limit output to <int> events",
+		"    --node   - show only events from <node>",
+		"    --role   - show only events from <role>",
+		"    --branch - show only events from <branch>",
+		"    --build  - show only events from <build>",
+		"    --tsuite - show only events from <test suite>",
+		"    --tname  - show only events from <test name>",
+		"    --trun   - show only events from <test run #>",
+		"    --log    - show only events from <log>",
+		"    --etype  - show only events of type <etype>",
+		"    --new    - show only first-ever occurrence by etype",
+		"    --time   - limit results in time: truncating timestamp widens window",
+	)));
+}
