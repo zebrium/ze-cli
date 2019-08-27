@@ -29,18 +29,21 @@ url=https://YOUR_ZE_API_INSTANCE_NAME.zebrium.com
 ##### Environment Variables
 None
 ## Usage
-Use ze help for command operation
+Use ze help for command complete list of command operations and options
 ```
 ze help
 ```
 ## Testing your installation
-Use ze cat command to show events already ingested into your Zebrium instance
+Use `ze up` to ingest log events into your Zebrium instance.
+```
+ze up --file=/var/log/messages --node=server01 --log=varlogmsgs
+
+```
+Use `ze cat` to show events already ingested into your Zebrium instance.
 ```
 ze cat --lim=20 --fmt=pp
 ```
-
 ## Contributors
-* Larry Lancaster
-* Dara Hazeghi
-* Rod Bagg
-## Contributing
+* Larry Lancaster (Zebrium)
+* Dara Hazeghi (Zebrium)
+* Rod Bagg (Zebrium)
