@@ -24,11 +24,20 @@ For convenience, your API token and your Zebrium instance URL can be specified i
 Example .zerc file:
 ```
 auth=YOUR_API_TOKEN
-url=https://YOUR_ZE_INSTANCE_NAME.zebrium.com
+url=https://YOUR_ZE_API_INSTANCE_NAME.zebrium.com
 ```
 ##### Environment Variables
 None
+## Usage
+Use ze help for command operation
+```
+ze help
+```
 ## Testing your installation
+Use ze cat command to show events already ingested into your Zebrium instance
+```
+ze cat --lim=20 --fmt=pp
+```
 
 ## Contributors
 * Larry Lancaster
