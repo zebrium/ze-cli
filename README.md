@@ -23,6 +23,7 @@ No preconfiguration is required. All options can be specified as command line ar
 ##### Setup
 
 For convenience, your API token and your Zebrium instance URL can be specified in the .zerc file located in your home directory.
+
 **Format of .zerc file**
 ```
 auth=YOUR_API_TOKEN
