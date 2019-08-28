@@ -9,9 +9,9 @@ Show the event-type (eType) definition for structured events in the database.
 Show events from the database by: meta-data, eType, time range, or first occurrence in CSV, JSON, pretty-print or raw format.
 ## Getting Started
 ##### Prerequisites
-* Perl
-* cURL
-* API token from Zebrium
+* perl
+* curl
+* API auth token from Zebrium
 * URL to your instance of Zebrium
 ##### Installing
 * `git clone https://github.com/zebrium/ze-cli.git`
