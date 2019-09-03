@@ -55,7 +55,7 @@ exit(0);
 
 sub main() {
 
-	if($VERB eq 'help') {
+	if($VERB =~ m/help/xsi ) {
 		print STDERR usage(), chr(10) or die("$!");
 		exit(0);
 	}
@@ -83,6 +83,14 @@ sub main() {
 
 sub common() {
 
+        my %valid_verbs = map {$_ => 1} qw( help up cat def sql );
+
+        if( ! exists( $valid_verbs{$VERB} ) ) {
+                printf( STDERR "Invalid action (%s). Must be one of: %s\n", $VERB || 'none', join( ', ', sort keys( %valid_verbs ) ) );
+		printf( STDERR "Use \"$0 help\" for details\n");
+		exit(1);
+	}
+
 	for(my $i=0;$i<scalar(@ARGV);$i++) {
 
 		my $arg = $ARGV[$i];
@@ -103,11 +111,11 @@ sub common() {
 
 	$URL=~s/\/++$//xs;
 	unless(length($URL)) {
-		die("$0: url must be set with switch --url=<url> or else the line url=<url> must be present in $HOME/.zerc.");
+		die("$0: url must be set with switch --url=<url> or else the line url=<url> must be present in $HOME/.zerc.\nUse \"$0 help\" for details\n");
 	}
 
 	unless(length($AUTH)) {
-		die("$0: auth must be set with --auth=<auth token> or else the line auth=<auth token> in $HOME/.zerc.");
+		die("$0: auth must be set with --auth=<auth token> or else the line auth=<auth token> in $HOME/.zerc.\nUse \"$0 help\" for details\n");
 	}
 
 	return();
