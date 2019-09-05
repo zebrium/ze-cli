@@ -34,15 +34,15 @@ Use `ze help` for a complete list of command operations and options.
 ze help
 ```
 ## Examples
-1 Ingest the log file /var/log/messages (does not assume a .zerc configuration file exists)
+1. Ingest the log file /var/log/messages (does not assume a .zerc configuration file exists)
 ```
 ze up --file=/var/log/messages --node=server01 --auth=YOUR_AUTH_TOKEN --url=https://YOUR_ZE_API_INSTANCE_NAME.zebrium.com
 ```
-2 Ingest a continuous tail of /var/log/messages. When there is no file, ze requires the --log flag (assumes a .zerc configuration file exists) 
+2. Ingest a continuous tail of /var/log/messages. When there is no file, ze requires the --log flag (assumes a .zerc configuration file exists) 
 ```
 tail -f /var/log/messages | ze up --node=server01 --log=varlogmsgs
 ```
-3 Show 20 events (using pretty-printed JSON) already ingested into your Zebrium instance (assumes a .zerc configuration file exists)
+3. Show 20 events (using pretty-printed JSON) already ingested into your Zebrium instance (assumes a .zerc configuration file exists)
 ```
 ze cat --lim=20 --fmt=pp
 ```
