@@ -38,7 +38,7 @@ ze help
 ```
 ze up --file=/var/log/messages --node=server01 --auth=YOUR_AUTH_TOKEN --url=https://YOUR_ZE_API_INSTANCE_NAME.zebrium.com
 ```
-2. Ingest a continuous tail of /var/log/messages. When there is no file, ze requires the --log flag (assumes a .zerc configuration file exists) 
+2. Ingest a continuous tail of /var/log/messages. When reading from a stream (e.g. STDIN) rather than from a file, ze requires the --log flag (assumes a .zerc configuration file exists) 
 ```
 tail -f /var/log/messages | ze up --node=server01 --log=varlogmsgs
 ```
