@@ -24,7 +24,7 @@ Show events from the database by: meta-data, eType, time range, or first occurre
 ```
 sudo apt-get install libjson-perl
 ```
-* To install on Mac OSX
+* To install on mac OS
 ```
 brew install cpanm
 sudo cpanm install JSON
