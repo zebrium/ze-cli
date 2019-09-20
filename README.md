@@ -42,10 +42,12 @@ ze up --file=/var/log/messages --node=server01 --auth=YOUR_AUTH_TOKEN --url=http
 ```
 tail -f /var/log/messages | ze up --node=server01 --log=varlogmsgs
 ```
+<!--
 3. Show 20 events (using pretty-printed JSON) already ingested into your Zebrium instance (assumes a .zerc configuration file exists)
 ```
 ze cat --lim=20 --fmt=pp
 ```
+-->
 ## Contributors
 * Larry Lancaster (Zebrium)
 * Dara Hazeghi (Zebrium)
