@@ -12,6 +12,7 @@ Show events from the database by: meta-data, eType, time range, or first occurre
 ## Getting Started
 ##### Prerequisites
 * perl
+* perl JSON module
 * curl
 * API auth token from Zebrium
 * URL to your instance of Zebrium
