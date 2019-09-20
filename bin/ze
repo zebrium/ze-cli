@@ -2,34 +2,23 @@
 
 use strict;
 use locale;
+use JSON;
 
 use IO::File;
+use File::Temp qw/ tempfile /;
 
 my ($HOME, $VERB) = (scalar(length($ENV{'HOME'}) ? $ENV{'HOME'} : '~'), shift(@ARGV));
 
 my ($AUTH, $URL) = @{rc()};
 
 my $UP_SMAP = {
-	'log'    => {'p'=>qr/[a-zA-Z0-9\_\-]++/xs, 'c'=>'[a-zA-Z0-9_-]',    'h'=>'X-Ze-Stream-Name', 'l'=>32, },
-	'branch' => {'p'=>qr/[\x21-\x7e]++/xs,     'c'=>'ascii 0x21-0x7e',  'h'=>'X-Ze-Source-Meta', 'l'=>32, },
-	'build'  => {'p'=>qr/[\x21-\x7e]++/xs,     'c'=>'ascii 0x21-0x7e',  'h'=>'X-Ze-Source-Pool', 'l'=>64, },
-	'node'   => {'p'=>qr/[\x21-\x7e]++/xs,     'c'=>'ascii 0x21-0x7e',  'h'=>'X-Ze-Source-UUID', 'l'=>64, },
-	'role'   => {'p'=>qr/[\w\-\:\.\+]++/xs,    'c'=>'[a-zA-Z0-9_-:.+]', 'h'=>'X-Ze-Source-Role', 'l'=>32, },
-	'dtz'    => {'p'=>qr/[\w\/\+\-\:]++/xs,    'c'=>'[a-zA-Z0-9_/+-:]', 'h'=>'X-Ze-Window-DFTZ', 'l'=>32, },
-	'tsuite' => {'p'=>qr/[\w\-\:\.\+]++/xs,    'c'=>'[a-zA-Z0-9_-:.+]', 'h'=>'X-Ze-Window-Meta', 'l'=>64, },
-	'tname'  => {'p'=>qr/[\w\-\:\.\+]++/xs,    'c'=>'[a-zA-Z0-9_-:.+]', 'h'=>'X-Ze-Window-Name', 'l'=>64, },
-	'trun'   => {'p'=>qr/\d++/xs,              'c'=>'digit',            'h'=>'X-Ze-Window-UUID', 'l'=>8,  },
+	'log'    => {'p'=>qr/[a-zA-Z0-9\_\-]++/xs, 'c'=>'[a-zA-Z0-9_-]',    'h'=>'log', 'l'=>32, },
+	'dtz'    => {'p'=>qr/[\w\/\+\-\:]++/xs,    'c'=>'[a-zA-Z0-9_/+-:]', 'h'=>'dtz', 'l'=>32, },
+	'ids'    => {'p'=>qr/[\x21-\x7e]++/xs,     'c'=>'ascii 0x21-0x7e',  'h'=>'ids',  'l'=>65536, },
+	'cfgs'   => {'p'=>qr/[\x21-\x7e]++/xs,     'c'=>'ascii 0x21-0x7e',  'h'=>'cfgs', 'l'=>65536, },
+	'tags'   => {'p'=>qr/[\x21-\x7e]++/xs,     'c'=>'ascii 0x21-0x7e',  'h'=>'tags', 'l'=>65536, },
 };
 my $UP_SKEYS = [keys %$UP_SMAP];
-
-my $UP_DMAP = {
-	'X-Ze-Source-UUID' => 'node00',
-	'X-Ze-Source-Pool' => 'build00',
-	'X-Ze-Window-Name' => 'my_test',
-	'X-Ze-Window-UUID' => '0',
-};
-
-my $UP_DKEYS = [keys %$UP_DMAP];
 
 # AT SOME POINT SHOULD MOVE OTHER Ze-Query TYPE HEADERS INTO THESE STRUCTURES, TOO
 my $CAT_SMAP = {
@@ -138,7 +127,7 @@ sub zdef() {
 	unless(length($curl)) { die("No curl found in PATH."); }
 
 	$URL=~s/\/(?:sql|def|close|ask|cat|post|api|)\/?$//xs;
-	$URL=join('/',($URL,'api/v1/def'));
+	$URL=join('/',($URL,'api/v2/def'));
 
 	$ze_hdrs = [];
 	my $amap_keys = [keys %$amap];
@@ -190,7 +179,7 @@ sub cat() {
 	unless(length($curl)) { die("No curl found in PATH."); }
 
 	$URL=~s/\/(?:sql|def|close|ask|cat|post|api|)\/?$//xs;
-	$URL=join('/',($URL,'api/v1/cat'));
+	$URL=join('/',($URL,'api/v2/cat'));
 
 	dcheck($amap, $CAT_DMAP, $CAT_DKEYS);
 
@@ -281,7 +270,7 @@ sub sql() {
 	}
 
 	$URL=~s/\/(?:sql|def|close|ask|cat|post|api|)\/?$//xs;
-	$URL=join('/',($URL,'api/v1/sql'));
+	$URL=join('/',($URL,'api/v2/sql'));
 
 	$curl_fn = length($fn) ? $fn : '-';
 
@@ -328,63 +317,92 @@ sub up() {
 			unless($fn=~m/^[\x21-\x7e]++$/xs) {
 				die("$0: file should be ascii non-whitespace");
 			}
-            if(! -e $fn) {
-                die("$0: file $fn does not exist");
-            }
+                        if(! -e $fn) {
+                                die("$0: file $fn does not exist");
+                        }
 			splice(@ARGV,$i,1); $i--; next;
 		} elsif($arg=~m/^\-\-file$/xs) {
-            die("$0: file argument must be specified (--file=...)");
-        }
+                        die("$0: file argument must be specified (--file=...)");
+                }
 	}
 
 	unless(scalar(keys %$amap)) {
 		print STDERR "$0: WARNING: No metadata switches set. That's fine for a quick test, but probably not what you want in real use. Run 'ze help' for more information.\n" or die("$!");
 	}
 
-	$amap->{'X-Ze-Stream-Type'} = 'native';
+	my %meta_data;
+	$meta_data{ 'stream' } = 'native';
 	if(length($fn)) {
-		$amap->{'X-Ze-Stream-Type'} = 'file';
-		unless(length($amap->{'X-Ze-Stream-Name'})) {
+	        $meta_data{ 'stream' } = 'file';
+		unless(length($amap->{'log'})) {
 			if($fn=~m/(?=[^\/]++$)([a-zA-Z]{3,})/xs) {
-				$amap->{'X-Ze-Stream-Name'} = lc($1);
+				$meta_data{'logbasename'} = lc($1);
 			} else {
-				$amap->{'X-Ze-Stream-Name'} = 'stream';
+				$meta_data{'logbasename'} = 'stream';
 			}
 		}
+	} else {
+		unless(exists $amap->{'log'}) {
+                    die("$0: logbasename must be specified for streaming (--log=...)");
+	        }
 	}
 
 	$URL=~s/\/(?:sql|def|close|ask|cat|post|api|)\/?$//xs;
-	$URL=join('/',($URL,'api/v1/post'));
-
-	dcheck($amap, $UP_DMAP, $UP_DKEYS);
+	my $TOKEN_URL = join('/',($URL,'api/v2/token'));
+	my $POST_URL = join('/',($URL,'api/v2/post'));
 
 	$curl_fn = length($fn) ? $fn : '-';
 
 	$ze_hdrs = [];
 	my $amap_keys = [keys %$amap];
 	foreach my $key(@$amap_keys) {
-		if($key=~m/^X\-Ze\-/xs) {
-			push(@$ze_hdrs,'-H');
-			push(@$ze_hdrs,join(': ',($key,$amap->{$key})));
+		if ($key =~ m/^log/xs) {
+	                $meta_data{ 'logbasename' } = $amap->{$key};
+		} else {
+			my %kvs = split /[,=]/, $amap->{$key};
+	                $meta_data{ $key } = \%kvs;
 		}
 	}
+	my $json_text = encode_json(\%meta_data);
+	my ($meta_fh, $meta_fname) = tempfile();
+	print $meta_fh encode_json(\%meta_data);
+	$meta_fh->flush();
 
-	if(system(
+	my $cmd = sprintf("%s --silent -S --insecure -H '%s' -H 'Content-Type: application/json' -X POST -T %s %s",
+		          $curl,
+                          join('', ('Authorization: Token ', $AUTH)),
+                          $meta_fname,
+                          $TOKEN_URL);
+        my $result = `$cmd`;
+        my $exit_code = $?;
+        if( $exit_code != 0 ) {
+            printf( STDERR "Unable to reach server\n" );
+            exit( 1 );
+        }
+        if( $result =~ /\<title\>(.*)\<\/title\>/xsi ) {
+            printf( STDERR "Unable to get API result from server (%s)\n", $1 );
+            exit( 1 );
+        }
+        my $data = decode_json($result);
+        my $stream_token = '';
+        if (exists($data->{'token'})) {
+                $stream_token = $data->{'token'};
+        } else {
+                die("No token is returned by server");
+        }
+
+	if (system(
 		$curl,
 		'--silent',
 		'-S',
 		'--insecure',
-		'-H', 	join('',('Authorization: Token ',$AUTH)),
-		@$ze_hdrs,
+		'-H', 	join('', ('Authorization: Token ', $stream_token)),
 		'-H',	'Content-Type: application/octet-stream',
 		'-H',	'Transfer-Encoding: chunked',
 		'-X',	'POST',
 		'-T',	$curl_fn,
-		#'--data-binary',
-		#join('',('@',$curl_fn)),
-		$URL
+		$POST_URL
 	)) { exit(1); }
-
 	return();
 }
 
@@ -483,21 +501,17 @@ sub usage() {
 		"",
 		"  ze up                                                                        \\",
 		"    [--file=<path>] [--auth=<token>] [--url=<url>] [--log=<log>] [--dtz=<tz>]  \\",
-		"    [--node=<node>] [--role=<role>] [--branch=<branch>] [--build=<build>]      \\",
-		"    [--tsuite=<test suite>] [--tname=<test name>] [--trun=<test run #>]",
+		"    [--ids=<name1:val1,name2:val2,...] [--cfgs=<name1:val1,name2:val2,...]     \\",
+		"    [--tags=<name1:val1,name2:val2,...]",
 		"",
 		"    --file   - omit to read from STDIN",
 		"    --auth   - omit to look for auth=<token> line in $HOME/.zerc",
 		"    --url    - omit to look for url=<url> line in $HOME/.zerc",
 		"    --log    - omit to use use base name from file=<path> (or 'stream' if STDIN)",
 		"    --dtz    - timezone to use for logs without time zone (default: GMT)",
-		"    --node   - node name or container id (default: 'node00')",
-		"    --role   - node role in test, e.g.: 'test','slave','client' (default: '-')",
-		"    --branch - version control branch (default: '-')",
-		"    --build  - build id (default: 'build00')",
-		"    --tsuite - test suite name (default: '-')",
-		"    --tname  - test name (default: 'my_test')",
-		"    --trun   - index indicating # of test re-runs (default: 0)",
+		"    --ids    - ids of the stream as a comma-separated list of name-value pairs",
+		"    --cfgs   - configs of the stream as a comma-separated list of name-value pairs",
+		"    --tags   - tags of the stream as a comma-separated list of name-value pairs",
 		"",
 		"ze sql - run SQL command",
 		"",
@@ -523,21 +537,26 @@ sub usage() {
 		"",
 		"  ze cat                                                                       \\",
 		"    [--auth=<token>] [--url=<url>] [--fmt=(csv|json|pp|raw)>] [--lim=<int>]    \\",
-		"    [--node=<node>] [--role=<role>] [--branch=<branch>] [--build=<build>]      \\",
-		"    [--tsuite=<test suite>] [--tname=<test name>] [--trun=<test run #>]        \\",
+		"    [--ids=<name1:val1,name2:val2,...] [--cfgs=<name1:val1,name2:val2,...]     \\",
+		"    [--tags=<name1:val1,name2:val2,...]",
+#		"    [--node=<node>] [--role=<role>] [--branch=<branch>] [--build=<build>]      \\",
+#		"    [--tsuite=<test suite>] [--tname=<test name>] [--trun=<test run #>]        \\",
 		"    [--log=<log>] [--etype=<etype>] [--new] [--time=<yyyy-mm-dd[Thh[:mi[:ss]]]>]",
 		"",
 		"    --auth   - omit to look for auth=<token> line in $HOME/.zerc",
 		"    --url    - omit to look for url=<url> line in $HOME/.zerc",
 		"    --fmt    - show lines raw, or along with etype in csv/json/pretty-print",
 		"    --lim    - limit output to <int> events",
-		"    --node   - show only events from <node>",
-		"    --role   - show only events from <role>",
-		"    --branch - show only events from <branch>",
-		"    --build  - show only events from <build>",
-		"    --tsuite - show only events from <test suite>",
-		"    --tname  - show only events from <test name>",
-		"    --trun   - show only events from <test run #>",
+		"    --ids    - ids of the log as a comma-separated list of name-value pairs",
+		"    --cfgs   - configs of the log as a comma-separated list of name-value pairs",
+		"    --tags   - tags of the log as a comma-separated list of name-value pairs",
+#		"    --node   - show only events from <node>",
+#		"    --role   - show only events from <role>",
+#		"    --branch - show only events from <branch>",
+#		"    --build  - show only events from <build>",
+#		"    --tsuite - show only events from <test suite>",
+#		"    --tname  - show only events from <test name>",
+#		"    --trun   - show only events from <test run #>",
 		"    --log    - show only events from <log>",
 		"    --etype  - show only events of type <etype>",
 		"    --new    - show only first-ever occurrence by etype",
