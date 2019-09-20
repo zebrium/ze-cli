@@ -18,6 +18,17 @@ Show events from the database by: meta-data, eType, time range, or first occurre
 ##### Installing
 * `git clone https://github.com/zebrium/ze-cli.git`
 * move `bin/ze` to appropriate bin directory in your PATH
+
+**Note:** ze requires the JSON Perl module.
+* To install on Linux (Ubuntu)
+```
+sudo apt-get install libjson-perl
+```
+* To install on Mac OSX
+```
+brew install cpanm
+sudo cpanm install JSON
+```
 ## Configuration
 No configuration is required. All options can be specified as command line arguments. However, see **Setup** section below for information on configuring your .zerc file.
 ##### Setup
