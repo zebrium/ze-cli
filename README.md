@@ -5,8 +5,10 @@ Zebrium's command line interface for uploading log events from files or streams,
 Upload log event data to your Zebrium instance from a file or stream (stdin) with appropriate meta data.
 ##### def
 Show the event-type (eType) definition for structured events in the database.
+<!--
 ##### cat
 Show events from the database by: meta-data, eType, time range, or first occurrence in CSV, JSON, pretty-print or raw format.
+-->
 ## Getting Started
 ##### Prerequisites
 * perl
