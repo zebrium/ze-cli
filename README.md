@@ -50,11 +50,11 @@ ze help
 ## Examples
 1. Ingest the log file /var/log/messages (does not assume a .zerc configuration file exists)
 ```
-ze up --file=/var/log/messages --node=server01 --auth=YOUR_AUTH_TOKEN --url=https://YOUR_ZE_API_INSTANCE_NAME.zebrium.com
+ze up --file=/var/log/messages --ids='node_name=node01,node_id=234fd3e1-2a34' --auth=YOUR_AUTH_TOKEN --url=https://YOUR_ZE_API_INSTANCE_NAME.zebrium.com
 ```
 2. Ingest a continuous tail of /var/log/messages. When reading from a stream (e.g. STDIN) rather than from a file, ze requires the --log flag (assumes a .zerc configuration file exists) 
 ```
-tail -f /var/log/messages | ze up --node=server01 --log=varlogmsgs
+tail -f /var/log/messages | ze up --log=varlogmsgs --ids='node_name=node01,node_id=234fd3e1-2a34'
 ```
 <!--
 3. Show 20 events (using pretty-printed JSON) already ingested into your Zebrium instance (assumes a .zerc configuration file exists)
