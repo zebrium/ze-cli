@@ -1,3 +1,4 @@
+# ZEBRIUM CLI DETAILS
 # ze-cli
 Zebrium's command line interface for uploading log events from files or streams, viewing log events and the definitions of event types in the database.
 ## Features
@@ -52,16 +53,14 @@ ze help
 ```
 ze up --file=/var/log/messages --ids='node_name=node01,node_id=234fd3e1-2a34' --auth=YOUR_AUTH_TOKEN --url=https://YOUR_ZE_API_INSTANCE_NAME.zebrium.com
 ```
-2. Ingest a continuous tail of /var/log/messages. When reading from a stream (e.g. STDIN) rather than from a file, ze requires the --log flag (assumes a .zerc configuration file exists) 
+2. Ingest a continuous tail of /var/log/messages. When reading from a stream (e.g. STDIN) rather than from a file, ze requires the --log flag (assumes a .zerc configuration file exists)
 ```
 tail -f /var/log/messages | ze up --log=varlogmsgs --ids='node_name=node01,node_id=234fd3e1-2a34'
 ```
-<!--
 3. Show 20 events (using pretty-printed JSON) already ingested into your Zebrium instance (assumes a .zerc configuration file exists)
 ```
 ze cat --lim=20 --fmt=pp
 ```
--->
 ## Contributors
 * Larry Lancaster (Zebrium)
 * Dara Hazeghi (Zebrium)
