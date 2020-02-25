@@ -2,7 +2,6 @@
 
 use strict;
 use locale;
-use JSON;
 
 use IO::File;
 use File::Temp qw/ tempfile /;
@@ -23,13 +22,9 @@ my $UP_SKEYS = [keys %$UP_SMAP];
 # AT SOME POINT SHOULD MOVE OTHER Ze-Query TYPE HEADERS INTO THESE STRUCTURES, TOO
 my $CAT_SMAP = {
 	'log'    => {'p'=>qr/[a-zA-Z0-9\_\,\-]++/xs, 'c'=>'[a-zA-Z0-9_-]',    'h'=>'X-Ze-Query-Log',    'l'=>32, },
-	'branch' => {'p'=>qr/[\x21-\x7e]++/xs,       'c'=>'ascii 0x21-0x7e',  'h'=>'X-Ze-Query-Branch', 'l'=>32, },
-	'build'  => {'p'=>qr/[\x21-\x7e]++/xs,       'c'=>'ascii 0x21-0x7e',  'h'=>'X-Ze-Query-Build',  'l'=>64, },
-	'node'   => {'p'=>qr/[\x21-\x7e]++/xs,       'c'=>'ascii 0x21-0x7e',  'h'=>'X-Ze-Query-Node',   'l'=>64, },
-#	'role'   => {'p'=>qr/[\w\-\:\.\,\+]++/xs,    'c'=>'[a-zA-Z0-9_-:.+]', 'h'=>'X-Ze-Query-Role',   'l'=>32, },
-	'tsuite' => {'p'=>qr/[\w\-\:\.\,\+]++/xs,    'c'=>'[a-zA-Z0-9_-:.+]', 'h'=>'X-Ze-Query-Tsuite', 'l'=>64, },
-	'tname'  => {'p'=>qr/[\w\-\:\.\,\+]++/xs,    'c'=>'[a-zA-Z0-9_-:.+]', 'h'=>'X-Ze-Query-Tname',  'l'=>64, },
-	'trun'   => {'p'=>qr/[\d\,]++/xs,            'c'=>'digit',            'h'=>'X-Ze-Query-Trun',   'l'=>8,  },
+	'ids'    => {'p'=>qr/[\x21-\x7e]++/xs,       'c'=>'ascii 0x21-0x7e',  'h'=>'X-Ze-Query-Ids',  	'l'=>65536, },
+	'cfgs'   => {'p'=>qr/[\x21-\x7e]++/xs,       'c'=>'ascii 0x21-0x7e',  'h'=>'X-Ze-Query-Configs','l'=>65536, },
+	'tags'   => {'p'=>qr/[\x21-\x7e]++/xs,       'c'=>'ascii 0x21-0x7e',  'h'=>'X-Ze-Query-Tags',	'l'=>65536, },
 };
 my $CAT_SKEYS = [keys %$CAT_SMAP];
 
@@ -75,6 +70,7 @@ sub common() {
         my %valid_verbs = map {$_ => 1} qw( help up cat def sql );
 
         if( ! exists( $valid_verbs{$VERB} ) ) {
+                printf( STDERR "Zebrium\n" );
                 printf( STDERR "Invalid action (%s). Must be one of: %s\n", $VERB || 'none', join( ', ', sort keys( %valid_verbs ) ) );
 		printf( STDERR "Use \"$0 help\" for details\n");
 		exit(1);
@@ -85,6 +81,9 @@ sub common() {
 		my $arg = $ARGV[$i];
 		if($arg=~m/^\-\-auth\=(.++)$/xs) {
 			$AUTH = $1;
+			if ($AUTH == "0") {
+				$AUTH = "0000000000000000000000000000000000000000";
+			}
 			unless($AUTH=~m/^[a-zA-Z\d]++$/xs) {
 				die("$0: auth token should be alphanumeric");
 			}
@@ -157,24 +156,6 @@ sub cat() {
 
 	my ($amap, $curl, $ze_hdrs) = (zargs($CAT_SMAP, $CAT_SKEYS), undef, undef);
 
-	for(my $i=0;$i<scalar(@ARGV);$i++) {
-
-		my $arg = $ARGV[$i];
-		if($arg=~m/^\-\-fmt\=(.++)$/xs) {
-			$amap->{'X-Ze-Query-Format'} = $1;
-		} elsif($arg=~m/^\-\-lim\=(.++)$/xs) {
-			$amap->{'X-Ze-Query-Limit'} = $1;
-		} elsif($arg=~m/^\-\-etype\=(.++)$/xs) {
-			$amap->{'X-Ze-Query-Etype'} = $1;
-		} elsif($arg=~m/^\-\-time\=(.++)$/xs) {
-			$amap->{'X-Ze-Query-Time'} = $1;
-		} elsif($arg=~m/^\-\-new$/xs) {
-			$amap->{'X-Ze-Query-New'} = 1;
-		} else {
-			die("$0: unsupported arg $arg");
-		}
-	}
-
 	$curl = `which curl`; chomp($curl);
 	unless(length($curl)) { die("No curl found in PATH."); }
 
@@ -196,9 +177,9 @@ sub cat() {
 			$amap->{'X-Ze-Query-Time'} = $1;
 		} elsif($arg=~m/^\-\-new$/xs) {
 			$amap->{'X-Ze-Query-New'} = 1;
-		} else {
-			die("$0: unsupported arg $arg");
-		}
+		} #else {
+			#die("$0: unsupported arg $arg");
+		#}
 	}
 
 	$ze_hdrs = [];
@@ -363,9 +344,10 @@ sub up() {
 	                $meta_data{ $key } = \%kvs;
 		}
 	}
-	my $json_text = encode_json(\%meta_data);
+	require JSON;
+	my $json_text = JSON::encode_json(\%meta_data);
 	my ($meta_fh, $meta_fname) = tempfile();
-	print $meta_fh encode_json(\%meta_data);
+	print $meta_fh JSON::encode_json(\%meta_data);
 	$meta_fh->flush();
 
 	my $cmd = sprintf("%s --silent -S --insecure -H '%s' -H 'Content-Type: application/json' -X POST -T %s %s",
@@ -383,7 +365,7 @@ sub up() {
             printf( STDERR "Unable to get API result from server (%s)\n", $1 );
             exit( 1 );
         }
-        my $data = decode_json($result);
+        my $data = JSON::decode_json($result);
         my $stream_token = '';
         if (exists($data->{'token'})) {
                 $stream_token = $data->{'token'};
@@ -403,6 +385,7 @@ sub up() {
 		'-T',	$curl_fn,
 		$POST_URL
 	)) { exit(1); }
+	unlink $meta_fname;
 	return();
 }
 
@@ -509,9 +492,9 @@ sub usage() {
 		"    --url    - omit to look for url=<url> line in $HOME/.zerc",
 		"    --log    - omit to use use base name from file=<path> (or 'stream' if STDIN)",
 		"    --dtz    - timezone to use for logs without time zone (default: GMT)",
-		"    --ids    - ids of the stream as a comma-separated list of name=value pairs",
-		"    --cfgs   - configs of the stream as a comma-separated list of name=value pairs",
-		"    --tags   - tags of the stream as a comma-separated list of name=value pairs",
+		"    --ids    - ids of the stream as a comma-separated list of name-value pairs",
+		"    --cfgs   - configs of the stream as a comma-separated list of name-value pairs",
+		"    --tags   - tags of the stream as a comma-separated list of name-value pairs",
 		"",
 		"ze sql - run SQL command",
 		"",
@@ -539,24 +522,15 @@ sub usage() {
 		"    [--auth=<token>] [--url=<url>] [--fmt=(csv|json|pp|raw)>] [--lim=<int>]    \\",
 		"    [--ids=<name1=val1,name2=val2,...] [--cfgs=<name1=val1,name2=val2,...]     \\",
 		"    [--tags=<name1=val1,name2=val2,...]",
-#		"    [--node=<node>] [--role=<role>] [--branch=<branch>] [--build=<build>]      \\",
-#		"    [--tsuite=<test suite>] [--tname=<test name>] [--trun=<test run #>]        \\",
-		"    [--log=<log>] [--etype=<etype>] [--new] [--time=<yyyy-mm-dd[Thh[:mi[:ss]]]>]",
+		"    [--log=<log>] [--etype=<etype>] [--new] [--time=<yyyy[-mm[-dd[Thh[:mi[:ss]]]]]>]",
 		"",
 		"    --auth   - omit to look for auth=<token> line in $HOME/.zerc",
 		"    --url    - omit to look for url=<url> line in $HOME/.zerc",
 		"    --fmt    - show lines raw, or along with etype in csv/json/pretty-print",
 		"    --lim    - limit output to <int> events",
-		"    --ids    - ids of the log as a comma-separated list of name=value pairs",
-		"    --cfgs   - configs of the log as a comma-separated list of name=value pairs",
-		"    --tags   - tags of the log as a comma-separated list of name=value pairs",
-#		"    --node   - show only events from <node>",
-#		"    --role   - show only events from <role>",
-#		"    --branch - show only events from <branch>",
-#		"    --build  - show only events from <build>",
-#		"    --tsuite - show only events from <test suite>",
-#		"    --tname  - show only events from <test name>",
-#		"    --trun   - show only events from <test run #>",
+		"    --ids    - ids of the log as a comma-separated list of name-value pairs",
+		"    --cfgs   - configs of the log as a comma-separated list of name-value pairs",
+		"    --tags   - tags of the log as a comma-separated list of name-value pairs",
 		"    --log    - show only events from <log>",
 		"    --etype  - show only events of type <etype>",
 		"    --new    - show only first-ever occurrence by etype",
