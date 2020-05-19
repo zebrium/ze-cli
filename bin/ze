@@ -311,8 +311,11 @@ sub up() {
 		print STDERR "$0: WARNING: No metadata switches set. That's fine for a quick test, but probably not what you want in real use. Run 'ze help' for more information.\n" or die("$!");
 	}
 
+	require JSON;
+
 	my %meta_data;
 	$meta_data{ 'stream' } = 'native';
+	$meta_data{ 'ze_tm' } = $JSON::false;
 	if(length($fn)) {
 	        $meta_data{ 'stream' } = 'file';
 		unless(length($amap->{'log'})) {
@@ -339,12 +342,13 @@ sub up() {
 	foreach my $key(@$amap_keys) {
 		if ($key =~ m/^log/xs) {
 	                $meta_data{ 'logbasename' } = $amap->{$key};
+		} elsif ($key =~ m/^dtz/xs) {
+		        $meta_data{ 'tz' } = $amap->{$key};
 		} else {
 			my %kvs = split /[,=]/, $amap->{$key};
 	                $meta_data{ $key } = \%kvs;
 		}
 	}
-	require JSON;
 	my $json_text = JSON::encode_json(\%meta_data);
 	my ($meta_fh, $meta_fname) = tempfile();
 	print $meta_fh JSON::encode_json(\%meta_data);
