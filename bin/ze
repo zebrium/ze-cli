@@ -10,6 +10,8 @@ my ($HOME, $VERB) = (scalar(length($ENV{'HOME'}) ? $ENV{'HOME'} : '~'), shift(@A
 
 my ($AUTH, $URL) = @{rc()};
 
+my $LOGSTASH = 0;
+
 my $UP_SMAP = {
 	'log'    => {'p'=>qr/[a-zA-Z0-9\_\-]++/xs, 'c'=>'[a-zA-Z0-9_-]',    'h'=>'log', 'l'=>32, },
 	'dtz'    => {'p'=>qr/[\w\/\+\-\:]++/xs,    'c'=>'[a-zA-Z0-9_/+-:]', 'h'=>'dtz', 'l'=>32, },
@@ -81,7 +83,7 @@ sub common() {
 		my $arg = $ARGV[$i];
 		if($arg=~m/^\-\-auth\=(.++)$/xs) {
 			$AUTH = $1;
-			if ($AUTH == "0") {
+			if ($AUTH eq "0") {
 				$AUTH = "0000000000000000000000000000000000000000";
 			}
 			unless($AUTH=~m/^[a-zA-Z\d]++$/xs) {
@@ -93,6 +95,9 @@ sub common() {
 			unless($URL=~m/^[\w\,\.\+\&\=\%\:\/\-]++$/xs) {
 				die("$0: url should only have chars [a-zA-Z0-9i_,.+&=%:/-]");
 			}
+			splice(@ARGV,$i,1); $i--; next;
+		} elsif($arg=~m/^\-\-logstash$/xs) {
+			$LOGSTASH = 1;
 			splice(@ARGV,$i,1); $i--; next;
 		}
 	}
@@ -307,7 +312,7 @@ sub up() {
                 }
 	}
 
-	unless(scalar(keys %$amap)) {
+	if( scalar(keys %$amap) == 0 and ! $LOGSTASH ) {
 		print STDERR "$0: WARNING: No metadata switches set. That's fine for a quick test, but probably not what you want in real use. Run 'ze help' for more information.\n" or die("$!");
 	}
 
@@ -326,14 +331,14 @@ sub up() {
 			}
 		}
 	} else {
-		unless(exists $amap->{'log'}) {
+	        if( ! exists( $amap->{'log'} ) and ! $LOGSTASH ) {
                     die("$0: logbasename must be specified for streaming (--log=...)");
 	        }
 	}
 
 	$URL=~s/\/(?:sql|def|close|ask|cat|post|api|)\/?$//xs;
 	my $TOKEN_URL = join('/',($URL,'api/v2/token'));
-	my $POST_URL = join('/',($URL,'api/v2/post'));
+	my $POST_URL = join('/',($URL, $LOGSTASH ? 'log/api/v2/ingest?log_source=logstash&log_format=json_batch' : 'api/v2/post'));
 
 	$curl_fn = length($fn) ? $fn : '-';
 
@@ -342,8 +347,8 @@ sub up() {
 	foreach my $key(@$amap_keys) {
 		if ($key =~ m/^log/xs) {
 	                $meta_data{ 'logbasename' } = $amap->{$key};
-		} elsif ($key =~ m/^dtz/xs) {
-		        $meta_data{ 'tz' } = $amap->{$key};
+                } elsif ($key =~ m/^dtz/xs) {
+                        $meta_data{ 'tz' } = $amap->{$key};
 		} else {
 			my %kvs = split /[,=]/, $amap->{$key};
 	                $meta_data{ $key } = \%kvs;
@@ -382,7 +387,7 @@ sub up() {
 		'--silent',
 		'-S',
 		'--insecure',
-		'-H', 	join('', ('Authorization: Token ', $stream_token)),
+		'-H', 	join('', ('Authorization: Token ', $LOGSTASH ? $AUTH : $stream_token)),
 		'-H',	'Content-Type: application/octet-stream',
 		'-H',	'Transfer-Encoding: chunked',
 		'-X',	'POST',
@@ -490,15 +495,17 @@ sub usage() {
 		"    [--file=<path>] [--auth=<token>] [--url=<url>] [--log=<log>] [--dtz=<tz>]  \\",
 		"    [--ids=<name1=val1,name2=val2,...] [--cfgs=<name1=val1,name2=val2,...]     \\",
 		"    [--tags=<name1=val1,name2=val2,...]",
+		"    [--logstash]",
 		"",
-		"    --file   - omit to read from STDIN",
-		"    --auth   - omit to look for auth=<token> line in $HOME/.zerc",
-		"    --url    - omit to look for url=<url> line in $HOME/.zerc",
-		"    --log    - omit to use use base name from file=<path> (or 'stream' if STDIN)",
-		"    --dtz    - timezone to use for logs without time zone (default: GMT)",
-		"    --ids    - ids of the stream as a comma-separated list of name-value pairs",
-		"    --cfgs   - configs of the stream as a comma-separated list of name-value pairs",
-		"    --tags   - tags of the stream as a comma-separated list of name-value pairs",
+		"    --file     - omit to read from STDIN",
+		"    --auth     - omit to look for auth=<token> line in $HOME/.zerc",
+		"    --url      - omit to look for url=<url> line in $HOME/.zerc",
+		"    --log      - omit to use use base name from file=<path> (or 'stream' if STDIN)",
+		"    --dtz      - timezone to use for logs without time zone (default: GMT)",
+		"    --ids      - ids of the stream as a comma-separated list of name-value pairs",
+		"    --cfgs     - configs of the stream as a comma-separated list of name-value pairs",
+		"    --tags     - tags of the stream as a comma-separated list of name-value pairs",
+		"    --logstash - file is in logstash format with appropriate \@ze_ keys",
 		"",
 		"ze sql - run SQL command",
 		"",
