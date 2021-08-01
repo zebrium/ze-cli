@@ -12,6 +12,26 @@ my ($AUTH, $URL) = @{rc()};
 
 my $LOGSTASH = 0;
 
+my $CURL = '';
+#############################
+# Try to find installed curl
+# Uncomment one of the following lines and modiy path as necessary
+#############################
+
+# $CURL = 'C:\Users\rodba\curl\curl-7.78.0-win64-mingw\bin\curl.exe';
+$CURL = `which curl`; chomp($CURL);
+
+#############################
+# End curl setup
+#############################
+
+if( ( length( $CURL ) == 0 ) || ( ! -e $CURL ) || ( ! -r $CURL  ) ) {
+    printf( STDERR "ERROR: curl command not found or is not executable\n" );
+    printf( STDERR "       You may need to adjust the \$CURL variable at the top of this PERL script\n" );
+    printf( STDERR "       \$CURL = %s\n", $CURL || '<empty string>' );
+    exit( 1 );
+}
+
 my $UP_SMAP = {
 	'log'    => {'p'=>qr/[a-zA-Z0-9\_\-]++/xs, 'c'=>'[a-zA-Z0-9_-]',    'h'=>'log', 'l'=>32, },
 	'dtz'    => {'p'=>qr/[\w\/\+\-\:]++/xs,    'c'=>'[a-zA-Z0-9_/+-:]', 'h'=>'dtz', 'l'=>32, },
@@ -116,7 +136,7 @@ sub common() {
 
 sub zdef() {
 
-	my ($amap, $curl, $ze_hdrs) = ({}, undef, undef);
+	my ($amap) = ({});
 
 	for(my $i=0;$i<scalar(@ARGV);$i++) {
 
@@ -127,42 +147,35 @@ sub zdef() {
 			die("$0: unsupported arg $arg");
 		}
 	}
-	$curl = `which curl`; chomp($curl);
-	unless(length($curl)) { die("No curl found in PATH."); }
 
 	$URL=~s/\/(?:sql|def|close|ask|cat|post|api|)\/?$//xs;
 	$URL=join('/',($URL,'api/v2/def'));
 
-	$ze_hdrs = [];
+	my $ze_hdrs_str = '';
 	my $amap_keys = [keys %$amap];
 	foreach my $key(@$amap_keys) {
 		if($key=~m/^X\-Ze\-/xs) {
-			push(@$ze_hdrs,'-H');
-			push(@$ze_hdrs,join(': ',($key,$amap->{$key})));
+			$ze_hdrs_str = sprintf( "%s -H \"%s: %s\"", $ze_hdrs_str, $key, $amap->{$key} );
 		}
 	}
-
-	if(system(
-		$curl,
-		'--silent',
-		'-X',
-		'POST',
-		'-S',
-		'--insecure',
-		'-H', 	join('',('Authorization: Token ',$AUTH)),
-		@$ze_hdrs,
-		'-H',	'Content-Type: application/octet-stream',
-		$URL
-	)) { exit(1); }
+	my $cmd = sprintf("%s --silent -S --insecure -H \"Authorization: Token %s\" -H \"Content-Type: application/octet-stream\" %s -X POST \"%s\"",
+			$CURL,
+			$AUTH,
+			$ze_hdrs_str,
+			$URL);
+	my $result = `$cmd`;
+	my $exit_code = $?;
+	if( $exit_code ) {
+		printf( STDERR "ERROR: Unable to get data\n" );
+		exit( $exit_code );
+	}
+	printf( STDOUT "%s", $result );
 	return();
 }
 
 sub cat() {
 
-	my ($amap, $curl, $ze_hdrs) = (zargs($CAT_SMAP, $CAT_SKEYS), undef, undef);
-
-	$curl = `which curl`; chomp($curl);
-	unless(length($curl)) { die("No curl found in PATH."); }
+	my ($amap) = (zargs($CAT_SMAP, $CAT_SKEYS));
 
 	$URL=~s/\/(?:sql|def|close|ask|cat|post|api|)\/?$//xs;
 	$URL=join('/',($URL,'api/v2/cat'));
@@ -187,34 +200,31 @@ sub cat() {
 		#}
 	}
 
-	$ze_hdrs = [];
+	my $ze_hdrs_str = '';
 	my $amap_keys = [keys %$amap];
 	foreach my $key(@$amap_keys) {
 		if($key=~m/^X\-Ze\-/xs) {
-			push(@$ze_hdrs,'-H');
-			push(@$ze_hdrs,join(': ',($key,$amap->{$key})));
+			$ze_hdrs_str = sprintf( "%s -H \"%s: %s\"", $ze_hdrs_str, $key, $amap->{$key} );
 		}
 	}
-
-	if(system(
-		$curl,
-		'--silent',
-		'-S',
-		'--insecure',
-		'-H', 	join('',('Authorization: Token ',$AUTH)),
-		@$ze_hdrs,
-		$URL
-	)) { exit(1); }
-
+	my $cmd = sprintf("%s --silent -S --insecure -H \"Authorization: Token %s\" %s \"%s\"",
+			$CURL,
+			$AUTH,
+			$ze_hdrs_str,
+			$URL);
+	my $result = `$cmd`;
+	my $exit_code = $?;
+	if( $exit_code ) {
+		printf( STDERR "ERROR: Unable to get data\n" );
+		exit( $exit_code );
+	}
+	printf( STDOUT "%s", $result );
 	return();
 }
 
 sub sql() {
 
-	my ($fn, $amap, $curl, $curl_fn, $ze_hdrs) = (undef, {}, undef, undef, undef);
-
-	$curl = `which curl`; chomp($curl);
-	unless(length($curl)) { die("No curl found in PATH."); }
+        my ( $fh, $fn, $amap, $curl_fn ) = ( undef, undef, {}, undef );
 
 	for(my $i=0;$i<scalar(@ARGV);$i++) {
 
@@ -222,15 +232,18 @@ sub sql() {
 		if($arg=~m/^\-\-file\=(.++)$/xs) {
 			$fn = $1;
 			unless($fn=~m/^[\x21-\x7e]++$/xs) {
-				die("$0: file should be ascii non-whitespace");
+				printf( STDERR "ERROR: File %s should be ascii non-whitespace\n", $fn );
+				exit( 1 );
 			}
-            if(! -e $fn) {
-                die("$0: file $fn does not exist");
-            }
-			splice(@ARGV,$i,1); $i--; next;
-		} elsif($arg=~m/^\-\-file$/xs) {
-            die("$0: file argument must be specified (--file=...)");
-        }
+			if(! -e $fn) {
+				printf( STDERR "ERROR: File %s does not exist (%s)\n", $fn, $! );
+				exit( 1 );
+                        }
+                        splice(@ARGV,$i,1); $i--; next;
+                } elsif($arg=~m/^\-\-file$/xs) {
+			printf( STDERR "ERROR: File argument must be specified (--file=...)\n" );
+			exit( 1 );
+                }
 	}
 
 	for(my $i=0;$i<scalar(@ARGV);$i++) {
@@ -244,15 +257,13 @@ sub sql() {
 				die("$0: Cannot specify both file and query");
 			}
 			unless($qtxt=~m/\;\s*$/xs) { $qtxt=~s/\s*$/\;/xs; }
-			$fn = join('',('/tmp/',$$,rand()));
-			my $fh = new IO::File();
-			open($fh,">$fn") or die("$!");
+			($fh, $fn) = tempfile();
 			print $fh $qtxt,chr(10) or die("$!");
-			close($fh) or die("$!");
+			$fh->flush();
+			$fh->close() or die("$!");
 		} else {
 			die("$0: unsupported arg $arg");
 		}
-
 	}
 
 	$URL=~s/\/(?:sql|def|close|ask|cat|post|api|)\/?$//xs;
@@ -260,40 +271,32 @@ sub sql() {
 
 	$curl_fn = length($fn) ? $fn : '-';
 
-	$ze_hdrs = [];
+	my $ze_hdrs_str = '';
 	my $amap_keys = [keys %$amap];
 	foreach my $key(@$amap_keys) {
 		if($key=~m/^X\-Ze\-/xs) {
-			push(@$ze_hdrs,'-H');
-			push(@$ze_hdrs,join(': ',($key,$amap->{$key})));
+			$ze_hdrs_str = sprintf( "%s -H \"%s: %s\"", $ze_hdrs_str, $key, $amap->{$key} );
 		}
 	}
-
-	if(system(
-		$curl,
-		'--silent',
-		'-S',
-		'--insecure',
-		'-H', 	join('',('Authorization: Token ',$AUTH)),
-		@$ze_hdrs,
-		'-H',	'Content-Type: application/octet-stream',
-		'-H',	'Transfer-Encoding: chunked',
-		'-X',	'POST',
-		'-T',	$curl_fn,
-		#'--data-binary',
-		#join('',('@',$curl_fn)),
-		$URL
-	)) { exit(1); }
-
+	my $cmd = sprintf("%s --silent -S --insecure -H \"Authorization: Token %s\" -H \"Content-Type: application/octet-stream\" -H \"Transfer-Encoding: chunked\" %s -X POST -T %s \"%s\"",
+			$CURL,
+			$AUTH,
+			$ze_hdrs_str,
+			$curl_fn,
+			$URL);
+	my $result = `$cmd`;
+	my $exit_code = $?;
+	if( $exit_code ) {
+		printf( STDERR "ERROR: Unable to get data\n" );
+		exit( $exit_code );
+	}
+	printf( STDOUT "%s", $result );
 	return();
 }
 
 sub up() {
 
-	my ($fn, $amap, $curl, $curl_fn, $ze_hdrs) = (undef, zargs($UP_SMAP, $UP_SKEYS), undef, undef, undef);
-
-	$curl = `which curl`; chomp($curl);
-	unless(length($curl)) { die("No curl found in PATH."); }
+	my ($fn, $amap, $curl_fn ) = (undef, zargs($UP_SMAP, $UP_SKEYS), undef);
 
 	for(my $i=0;$i<scalar(@ARGV);$i++) {
 
@@ -308,7 +311,8 @@ sub up() {
                         }
 			splice(@ARGV,$i,1); $i--; next;
 		} elsif($arg=~m/^\-\-file$/xs) {
-                        die("$0: file argument must be specified (--file=...)");
+			printf( STDERR "ERROR: File argument must be specified (--file=...)\n" );
+			exit( 1 );
                 }
 	}
 
@@ -342,7 +346,6 @@ sub up() {
 
 	$curl_fn = length($fn) ? $fn : '-';
 
-	$ze_hdrs = [];
 	my $amap_keys = [keys %$amap];
 	foreach my $key(@$amap_keys) {
 		if ($key =~ m/^log/xs) {
@@ -359,11 +362,11 @@ sub up() {
 	print $meta_fh JSON::encode_json(\%meta_data);
 	$meta_fh->flush();
 
-	my $cmd = sprintf("%s --silent -S --insecure -H '%s' -H 'Content-Type: application/json' -X POST -T %s %s",
-		          $curl,
-                          join('', ('Authorization: Token ', $AUTH)),
-                          $meta_fname,
-                          $TOKEN_URL);
+	my $cmd = sprintf("%s --silent -S --insecure -H \"Authorization: Token %s\" -H \"Content-Type: application/json\" -X POST -T %s \"%s\"",
+			$CURL,
+			$AUTH,
+			$meta_fname,
+			$TOKEN_URL);
         my $result = `$cmd`;
         my $exit_code = $?;
         if( $exit_code != 0 ) {
@@ -379,21 +382,28 @@ sub up() {
         if (exists($data->{'token'})) {
                 $stream_token = $data->{'token'};
         } else {
-                die("No token is returned by server");
+		my $reason = 'Unknown';
+		if( exists( $data->{'description'} ) && exists( $data->{'title'} ) ) {
+			$reason = sprintf( "%s - %s", $data->{'title'}, $data->{'description'} );
+		}
+		printf( STDERR "ERROR: No stream token returned by server\n" );
+		printf( STDERR "       Reason: %s\n", $reason );
+		printf( STDERR "       Please check that you have specified a valid auth token\n" );
+		exit( 1 );
         }
 
-	if (system(
-		$curl,
-		'--silent',
-		'-S',
-		'--insecure',
-		'-H', 	join('', ('Authorization: Token ', $LOGSTASH ? $AUTH : $stream_token)),
-		'-H',	'Content-Type: application/octet-stream',
-		'-H',	'Transfer-Encoding: chunked',
-		'-X',	'POST',
-		'-T',	$curl_fn,
-		$POST_URL
-	)) { exit(1); }
+        my $cmd = sprintf("%s --silent -S --insecure -H \"Authorization: Token %s\" -H \"Content-Type: application/octet-stream\" -H \"Transfer-Encoding: chunked\" -X POST -T %s \"%s\"",
+			$CURL,
+			$LOGSTASH ? $AUTH : $stream_token,
+			$curl_fn,
+			$POST_URL);
+	my $result = `$cmd`;
+	my $exit_code = $?;
+	if( $exit_code ) {
+		printf( STDERR "ERROR: Unable to send data\n" );
+		exit( $exit_code );
+	}
+	printf( STDOUT "Sent successfully\n" );
 	unlink $meta_fname;
 	return();
 }
