@@ -1,3 +1,9 @@
+---
+layout: page
+title: File Upload (ze command)
+parent: Log Collectors and File Upload
+nav_order: 7
+---
 # ZE DETAILS
 `ze` is Zebrium's command line interface for uploading log events from files or streams.
 ## Features
@@ -70,20 +76,20 @@ Use `ze help` for a complete list of command options.
                  applications or support cases and isolate the logs of one from another so as not to mix these
                  in a Root Cause Report. This is referred to as a Service Group in the Zebrium UI.
 
-                 If omitted, Service Group will be set to \"default\". Default is used to denote a service group that
+                 If omitted, Service Group will be set to "default". Default is used to denote a service group that
                  represents shared-services. For example, a database that is shared between two otherwise distinctly separate applications
-                 would be considered a shared-service. In this example scenario, you would set the Service Group for one application to \"app01\"
-                 and to \"app02\" for the other application. For the database logs, you would either omit the --svcgrp setting or you could 
-                 explicitly set it do \"default\" using `--svcgrp=default`.
+                 would be considered a shared-service. In this example scenario, you would set the Service Group for one application to "app01"
+                 and to "app02" for the other application. For the database logs, you would either omit the --svcgrp setting or you could 
+                 explicitly set it do "default" using --svcgrp=default.
 
                  With this configuration, Root Cause Reports will consider correlated anomalies across:
 
-                     \"app01\" log events and default (i.e. database logs) and
-                     \"app02\" log events and default (i.e. database logs)
+                     "app01" log events and default (i.e. database logs) and
+                     "app02" log events and default (i.e. database logs)
 
                  but not across:
 
-                     \"app01\" and \"app02\"
+                     "app01" and "app02"
 ```
 
 ### ADVANCED OPTIONS
