@@ -1,4 +1,4 @@
-# ZEBRIUM CLI DETAILS
+# ZE DETAILS
 `ze` is Zebrium's command line interface for uploading log events from files or streams.
 ## Features
 
@@ -21,7 +21,8 @@ Display help on ze command usage.
 ### Installing
 
 * `git clone https://github.com/zebrium/ze-cli.git`
-* move `bin/ze` to appropriate bin directory in your PATH
+* Move `bin/ze` to appropriate bin directory in your PATH
+* Ensure ze command is executable: `chmod 755 <path_to_ze_command>`
 
 **Note:** ze requires the JSON Perl module.
 * To install on Linux (Ubuntu)
