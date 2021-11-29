@@ -12,6 +12,8 @@ my ($AUTH, $URL) = @{rc()};
 
 my $LOGSTASH = 0;
 
+my $UP_ONLY = 1;
+
 my $CURL = '';
 #############################
 # Try to find installed curl
@@ -35,6 +37,8 @@ if( ( length( $CURL ) == 0 ) || ( ! -e $CURL ) || ( ! -r $CURL  ) ) {
 my $UP_SMAP = {
 	'log'    => {'p'=>qr/[a-zA-Z0-9\_\-]++/xs, 'c'=>'[a-zA-Z0-9_-]',    'h'=>'log', 'l'=>32, },
 	'dtz'    => {'p'=>qr/[\w\/\+\-\:]++/xs,    'c'=>'[a-zA-Z0-9_/+-:]', 'h'=>'dtz', 'l'=>32, },
+	'host'   => {'p'=>qr/[\w\/\+\-\:]++/xs,    'c'=>'[a-zA-Z0-9_/+-:]', 'h'=>'host', 'l'=>253, },
+	'svcgrp' => {'p'=>qr/[\w\/\+\-\:]++/xs,    'c'=>'[a-zA-Z0-9_/+-:]', 'h'=>'svcgrp', 'l'=>253, },
 	'ids'    => {'p'=>qr/[\x21-\x7e]++/xs,     'c'=>'ascii 0x21-0x7e',  'h'=>'ids',  'l'=>65536, },
 	'cfgs'   => {'p'=>qr/[\x21-\x7e]++/xs,     'c'=>'ascii 0x21-0x7e',  'h'=>'cfgs', 'l'=>65536, },
 	'tags'   => {'p'=>qr/[\x21-\x7e]++/xs,     'c'=>'ascii 0x21-0x7e',  'h'=>'tags', 'l'=>65536, },
@@ -71,28 +75,38 @@ sub main() {
 	if($VERB eq 'up') {
 		up();
 	} elsif($VERB eq 'cat') {
+		print STDERR "cat is no longer supported\n";
+		exit(0);
 		cat();
 	} elsif($VERB eq 'def') {
+		print STDERR "def is no longer supported\n";
+		exit(0);
 		zdef();
 	} elsif($VERB eq 'close') {
-		print STDERR "close is no longer supported";
-		exit(0)
+		print STDERR "close is no longer supported\n";
+		exit(0);
 	} elsif($VERB eq 'sql') {
+		print STDERR "sql is no longer supported\n";
+		exit(0);
 		sql();
 	} else {
 		print STDERR usage(), chr(10) or die("$!");
 		exit(1);
 	}
-
 	return();
 }
 
 sub common() {
 
-        my %valid_verbs = map {$_ => 1} qw( help up cat def sql );
+        my %valid_verbs = ();
+        if( $UP_ONLY ) {
+            %valid_verbs = map {$_ => 1} qw( help up );
+        }
+        else {
+            %valid_verbs = map {$_ => 1} qw( help up cat def sql );
+        }
 
         if( ! exists( $valid_verbs{$VERB} ) ) {
-                printf( STDERR "Zebrium\n" );
                 printf( STDERR "Invalid action (%s). Must be one of: %s\n", $VERB || 'none', join( ', ', sort keys( %valid_verbs ) ) );
 		printf( STDERR "Use \"$0 help\" for details\n");
 		exit(1);
@@ -294,6 +308,12 @@ sub sql() {
 	return();
 }
 
+sub sort_opts() {
+    if( $a eq 'ids' ) { return -1; }
+    if( $b eq 'ids' ) { return 1; }
+    return( $a cmp $b );
+}
+
 sub up() {
 
 	my ($fn, $amap, $curl_fn ) = (undef, zargs($UP_SMAP, $UP_SKEYS), undef);
@@ -347,11 +367,15 @@ sub up() {
 	$curl_fn = length($fn) ? $fn : '-';
 
 	my $amap_keys = [keys %$amap];
-	foreach my $key(@$amap_keys) {
+	foreach my $key( sort sort_opts @$amap_keys) {
 		if ($key =~ m/^log/xs) {
 	                $meta_data{ 'logbasename' } = $amap->{$key};
                 } elsif ($key =~ m/^dtz/xs) {
                         $meta_data{ 'tz' } = $amap->{$key};
+                } elsif ($key =~ m/^host/xs) {
+                        $meta_data{ 'ids' }{'zid_host'} = $amap->{$key};
+                } elsif ($key =~ m/^svcgrp/xs) {
+                        $meta_data{ 'ids' }{'ze_deployment_name'} = $amap->{$key};
 		} else {
 			my %kvs = split /[,=]/, $amap->{$key};
 	                $meta_data{ $key } = \%kvs;
@@ -496,27 +520,42 @@ sub usage() {
 	# cat [--fmt=<(csv|json|pp)>] [--lim=<int>] [--log=<log>] [--etype=<etype>] [--time=<time>] [--new]
 	# def [--fmt=<(csv|json|pp)>] [--lim=<int>] [--log=<log>] [--etype=<etype>]
 	# sql [--fmt=<(csv|json|pp)>]
-	return(join(chr(10),(
+        my $help_text    = join( chr( 10 ), (
 		"ze help - get help on ze usage",
 		"",
+        ));
+        my $help_text_up = join( chr( 10 ), (
 		"ze up - upload data to Zebrium",
 		"",
-		"  ze up                                                                        \\",
-		"    [--file=<path>] [--auth=<token>] [--url=<url>] [--log=<log>] [--dtz=<tz>]  \\",
-		"    [--ids=<name1=val1,name2=val2,...] [--cfgs=<name1=val1,name2=val2,...]     \\",
-		"    [--tags=<name1=val1,name2=val2,...]",
+		"  ze up                                                                              \\",
+		"    [--url=<url>] [--auth=<token>]                                                   \\",
+                "    [--file=<path>] [--log=<logtype>] [--host=<hostname>] [--svcgrp=<service-group>] \\",
+		"                                                                                     \\",
+                "    [--dtz=<tz>]                                                                     \\",
+		"    [--ids=<name1=val1,name2=val2,...]                                               \\",
+                "    [--cfgs=<name1=val1,name2=val2,...]                                              \\",
+		"    [--tags=<name1=val1,name2=val2,...]                                              \\",
 		"    [--logstash]",
 		"",
-		"    --file     - omit to read from STDIN",
-		"    --auth     - omit to look for auth=<token> line in $HOME/.zerc",
-		"    --url      - omit to look for url=<url> line in $HOME/.zerc",
-		"    --log      - omit to use use base name from file=<path> (or 'stream' if STDIN)",
-		"    --dtz      - timezone to use for logs without time zone (default: GMT)",
+		"",
+		"    --url      - Zebrium Log Collector URL <ZE_LOG_COLLECTOR_URL> (omit to look for url=<url> line in $HOME/.zerc)",
+		"    --auth     - Zebrium Log Collector Token <ZE_LOG_COLLECTOR_TOKEN> (omit to look for auth=<token> line in $HOME/.zerc)",
+		"    --file     - Path to file being uploaded (omit to read from STDIN)",
+		"    --log      - Logtype of file being uploaded (omit to use base name from file=<path> or 'stream' if STDIN)",
+		"    --host     - Hostname or other identifier representing the source of the file being uploaded",
+		"    --svcgrp   - Defines a failure domain boundary for anomaly correlation. This allows you to collect logs from multiple",
+                "                 applications or support cases and isolate the logs of one from another so as not to mix these",
+                "                 in a Root Cause Report. This is referred to as a Service Group in the Zebrium UI",
+                "",
+                "    ADVANCED OPTIONS:",
+		"    --dtz      - Time Zone to use for logs without time zone (default: GMT)",
 		"    --ids      - ids of the stream as a comma-separated list of name-value pairs",
 		"    --cfgs     - configs of the stream as a comma-separated list of name-value pairs",
 		"    --tags     - tags of the stream as a comma-separated list of name-value pairs",
 		"    --logstash - file is in logstash format with appropriate \@ze_ keys",
 		"",
+        ));
+        my $help_text_other = join( chr( 10 ), (
 		"ze sql - run SQL command",
 		"",
 		"  ze sql                                                                       \\",
@@ -556,5 +595,10 @@ sub usage() {
 		"    --etype  - show only events of type <etype>",
 		"    --new    - show only first-ever occurrence by etype",
 		"    --time   - limit results in time: truncating timestamp widens window",
-	)));
+	));
+        if( $UP_ONLY ) {
+            return( $help_text . "\n" . $help_text_up . "\n" );
+        } else {
+            return( $help_text . "\n" . $help_text_up . "\n" . $help_text_other ) ;
+        }
 }
