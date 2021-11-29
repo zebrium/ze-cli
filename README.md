@@ -23,8 +23,8 @@ Display advanced help on ze command usage.
 
 ### Installing
 
-* `git clone https://github.com/zebrium/ze-cli.git`
-* Move `bin/ze` to appropriate bin directory in your PATH
+* Download `bin/ze` from the Zebrium GitHub repository here: [https://github.com/zebrium/ze-cli](https://github.com/zebrium/ze-cli)
+* Move `bin/ze` to the appropriate bin directory in your PATH
 * Ensure ze command is executable: `chmod 755 <path_to_ze_command>`
 
 **Note:** ze requires the JSON Perl module.
