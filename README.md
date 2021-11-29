@@ -59,16 +59,24 @@ Use `ze help` for a complete list of command options.
 ```
   ze up                                                                              \
     [--url=<url>] [--auth=<token>]                                                   \
-    [--file=<path>] [--log=<logtype>] [--host=<hostname>] [--svcgrp=<service-group>] \
+    [--file=<path>] [--log=<logtype>] [--host=<hostname>] [--svcgrp=<service-group>]
 
-    --url      - Zebrium Log Collector URL <ZE_LOG_COLLECTOR_URL> (omit to look for url=<url> line in /auto/home/rod/.zerc)
-    --auth     - Zebrium Log Collector Token <ZE_LOG_COLLECTOR_TOKEN> (omit to look for auth=<token> line in /auto/home/rod/.zerc)
+    --url      - Zebrium Log Collector URL <ZE_LOG_COLLECTOR_URL> (omit to look for url=<url> line in $HOME/.zerc)
+    --auth     - Zebrium Log Collector Token <ZE_LOG_COLLECTOR_TOKEN> (omit to look for auth=<token> line in $HOME/.zerc)
     --file     - Path to file being uploaded (omit to read from STDIN)
     --log      - Logtype of file being uploaded (omit to use base name from file=<path> or 'stream' if STDIN)
     --host     - Hostname or other identifier representing the source of the file being uploaded
-    --svcgrp   - Defines a failure domain boundary for anomaly correlation. This allows you to collect logs from multiple
+    --svcgrp   - Service Group defines a failure domain boundary for anomaly correlation. This allows you to collect logs from multiple
                  applications or support cases and isolate the logs of one from another so as not to mix these
                  in a Root Cause Report. This is referred to as a Service Group in the Zebrium UI
+
+                 If omitted, Service Group will be set to \"default\". Default is used to denote a service group that
+                 represents shared-services. For example, a database that is shared between two otherwise distinctly separate applications
+                 would be considered a shared-service. In this example scenario, you would set the Service Group for one application to \"app01\"
+                 and to \"app02\" for the other application. For the database logs, you would either omit the --svcgrp setting or you could 
+                 explicitly set it do \"default\" using --svcgrp=default
+
+                 With this configuration, Root Cause Reports will consider correlated anomalies across \"app01\" log events and default (i.e. database logs) and \"app02\" log events and default (i.e. database logs) but not \"app01\" and \"app02\" together.
 ```
 
 ### ADVANCED OPTIONS
