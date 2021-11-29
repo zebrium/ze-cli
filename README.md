@@ -68,15 +68,22 @@ Use `ze help` for a complete list of command options.
     --host     - Hostname or other identifier representing the source of the file being uploaded
     --svcgrp   - Service Group defines a failure domain boundary for anomaly correlation. This allows you to collect logs from multiple
                  applications or support cases and isolate the logs of one from another so as not to mix these
-                 in a Root Cause Report. This is referred to as a Service Group in the Zebrium UI
+                 in a Root Cause Report. This is referred to as a Service Group in the Zebrium UI.
 
                  If omitted, Service Group will be set to \"default\". Default is used to denote a service group that
                  represents shared-services. For example, a database that is shared between two otherwise distinctly separate applications
                  would be considered a shared-service. In this example scenario, you would set the Service Group for one application to \"app01\"
                  and to \"app02\" for the other application. For the database logs, you would either omit the --svcgrp setting or you could 
-                 explicitly set it do \"default\" using --svcgrp=default
+                 explicitly set it do \"default\" using `--svcgrp=default`.
 
-                 With this configuration, Root Cause Reports will consider correlated anomalies across \"app01\" log events and default (i.e. database logs) and \"app02\" log events and default (i.e. database logs) but not \"app01\" and \"app02\" together.
+                 With this configuration, Root Cause Reports will consider correlated anomalies across:
+
+                     \"app01\" log events and default (i.e. database logs) and
+                     \"app02\" log events and default (i.e. database logs)
+
+                 but not across:
+
+                     \"app01\" and \"app02\"
 ```
 
 ### ADVANCED OPTIONS
