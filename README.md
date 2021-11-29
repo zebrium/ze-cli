@@ -1,23 +1,25 @@
 # ZEBRIUM CLI DETAILS
-# ze-cli
-Zebrium's command line interface for uploading log events from files or streams, viewing log events and the definitions of event types in the database.
+`ze` is Zebrium's command line interface for uploading log events from files or streams.
 ## Features
-##### upload
+
+### up (upload)
 Upload log event data to your Zebrium instance from a file or stream (stdin) with appropriate meta data.
-##### def
-Show the event-type (eType) definition for structured events in the database.
-<!--
-##### cat
-Show events from the database by: meta-data, eType, time range, or first occurrence in CSV, JSON, pretty-print or raw format.
--->
+
+### help
+Display help on ze command usage.
+
 ## Getting Started
-##### Prerequisites
+
+### Prerequisites
+
 * perl
 * perl JSON module
 * curl
-* API auth token from Zebrium
-* URL to your instance of Zebrium
-##### Installing
+* Collector token from Zebrium (available from the Log Collector Setup page in the Zebrium UI)
+* URL to your instance of Zebrium (available from the Log Collector Setup page in the Zebrium UI)
+
+### Installing
+
 * `git clone https://github.com/zebrium/ze-cli.git`
 * move `bin/ze` to appropriate bin directory in your PATH
 
@@ -31,35 +33,56 @@ sudo apt-get install libjson-perl
 brew install cpanm
 sudo cpanm install JSON
 ```
+
 ## Configuration
-No configuration is required. All options can be specified as command line arguments. However, see **Setup** section below for information on configuring your .zerc file.
-##### Setup
-For convenience, your API token and your Zebrium instance URL can be specified in your $HOME/.zerc file.
+No configuration is required. All options can be specified as command line arguments. However, see the **Setup** section below for information on configuring your .zerc file.
+
+### Setup
+For convenience, the collector TOKEN and URL can be specified in your $HOME/.zerc file.
+
+Your ZE_LOG_COLLECTOR_URL and ZE_LOG_COLLECTOR_TOKEN are available in the the Zebrium UI under the Log Collector Setup page.
 
 Example .zerc file:
 ```
-auth=YOUR_ZE_API_AUTH_TOKEN
-url=https://YOUR_ZE_API_INSTANCE_NAME.zebrium.com
+url=<ZE_LOG_COLLECTOR_URL>
+auth=<ZE_LOG_COLLECTOR_TOKEN>
 ```
-##### Environment Variables
+
+### Environment Variables
 None
+
 ## Usage
-Use `ze help` for a complete list of command operations and options.
+Use `ze help` for a complete list of command options.
+
+### COMMAND SYNTAX AND OPTIONS
 ```
-ze help
+  ze up                                                                              \
+    [--url=<url>] [--auth=<token>]                                                   \
+    [--file=<path>] [--log=<logtype>] [--host=<hostname>] [--svcgrp=<service-group>] \
+
+    --url      - Zebrium Log Collector URL <ZE_LOG_COLLECTOR_URL> (omit to look for url=<url> line in /auto/home/rod/.zerc)
+    --auth     - Zebrium Log Collector Token <ZE_LOG_COLLECTOR_TOKEN> (omit to look for auth=<token> line in /auto/home/rod/.zerc)
+    --file     - Path to file being uploaded (omit to read from STDIN)
+    --log      - Logtype of file being uploaded (omit to use base name from file=<path> or 'stream' if STDIN)
+    --host     - Hostname or other identifier representing the source of the file being uploaded
+    --svcgrp   - Defines a failure domain boundary for anomaly correlation. This allows you to collect logs from multiple
+                 applications or support cases and isolate the logs of one from another so as not to mix these
+                 in a Root Cause Report. This is referred to as a Service Group in the Zebrium UI
 ```
+
+### ADVANCED OPTIONS
+Use `ze help` for a complete list of command options.
+
 ## Examples
-1. Ingest the log file /var/log/messages (does not assume a .zerc configuration file exists)
+1. Ingest three log files associated with the same support case \"sr12345\" (does not assume a .zerc configuration file exists)
 ```
-ze up --file=/var/log/messages --ids='node_name=node01,node_id=234fd3e1-2a34' --auth=YOUR_AUTH_TOKEN --url=https://YOUR_ZE_API_INSTANCE_NAME.zebrium.com
+ze up --file=/casefiles/sr12345/messages.log --svcgrp=sr12345 --host=node01 --log=messages --url=<ZE_LOG_COLLECTOR_URL> --auth=<ZE_LOG_COLLECTOR_TOKEN>
+ze up --file=/casefiles/sr12345/application.log --svcgrp=sr12345 --host=node01 --log=application --url=<ZE_LOG_COLLECTOR_URL> --auth=<ZE_LOG_COLLECTOR_TOKEN>
+ze up --file=/casefiles/sr12345/db.log --svcgrp=sr12345 --host=db01 --log=db --url=<ZE_LOG_COLLECTOR_URL> --auth=<ZE_LOG_COLLECTOR_TOKEN>
 ```
 2. Ingest a continuous tail of /var/log/messages. When reading from a stream (e.g. STDIN) rather than from a file, ze requires the --log flag (assumes a .zerc configuration file exists)
 ```
-tail -f /var/log/messages | ze up --log=varlogmsgs --ids='node_name=node01,node_id=234fd3e1-2a34'
-```
-3. Show 20 events (using pretty-printed JSON) already ingested into your Zebrium instance (assumes a .zerc configuration file exists)
-```
-ze cat --lim=20 --fmt=pp
+tail -f /var/log/messages | ze up --log=varlogmsgs --svcgrp=monitor01 --help=mydbhost
 ```
 ## Contributors
 * Larry Lancaster (Zebrium)
