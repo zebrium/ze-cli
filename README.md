@@ -1,9 +1,3 @@
----
-layout: page
-title: File Upload (ze command)
-parent: Log Collectors and File Upload
-nav_order: 7
----
 # ZE DETAILS
 `ze` is Zebrium's command line interface for uploading log events from files or streams.
 ## Features
