@@ -58,7 +58,7 @@ None
 ## Usage
 Use `ze help` for a complete list of command options.
 
-### COMMAND SYNTAX AND OPTIONS
+### Command Syntax and Options
 ```
   ze up                                                                              \
     [--url=<url>] [--auth=<token>]                                                   \
@@ -89,8 +89,8 @@ Use `ze help` for a complete list of command options.
                      "app01" and "app02"
 ```
 
-### ADVANCED OPTIONS
-Use `ze help_adv` for a complete list of command options.
+### Advanced Options
+Use `ze help_adv` for a complete list of advanced options.
 
 ## Examples
 1. Ingest three log files associated with the same support case \"sr12345\" (does not assume a .zerc configuration file exists)
@@ -103,6 +103,7 @@ ze up --file=/casefiles/sr12345/db.log --svcgrp=sr12345 --host=db01 --log=db --u
 ```
 tail -f /var/log/messages | ze up --log=varlogmsgs --svcgrp=monitor01 --help=mydbhost
 ```
+
 ## Contributors
 * Larry Lancaster (Zebrium)
 * Dara Hazeghi (Zebrium)
