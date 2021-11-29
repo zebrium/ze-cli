@@ -8,6 +8,9 @@ Upload log event data to your Zebrium instance from a file or stream (stdin) wit
 ### help
 Display help on ze command usage.
 
+### help_adv
+Display advanced help on ze command usage.
+
 ## Getting Started
 
 ### Prerequisites
@@ -87,7 +90,7 @@ Use `ze help` for a complete list of command options.
 ```
 
 ### ADVANCED OPTIONS
-Use `ze help` for a complete list of command options.
+Use `ze help_adv` for a complete list of command options.
 
 ## Examples
 1. Ingest three log files associated with the same support case \"sr12345\" (does not assume a .zerc configuration file exists)
