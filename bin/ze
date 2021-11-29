@@ -13,6 +13,7 @@ my ($AUTH, $URL) = @{rc()};
 my $LOGSTASH = 0;
 
 my $UP_ONLY = 1;
+my $HELP_ADV = 0;
 
 my $CURL = '';
 #############################
@@ -65,7 +66,14 @@ exit(0);
 
 sub main() {
 
-	if($VERB =~ m/help/xsi ) {
+	if($VERB =~ m/^help$/xsi ) {
+                $HELP_ADV = 0;
+		print STDERR usage(), chr(10) or die("$!");
+		exit(0);
+	}
+
+	if($VERB =~ m/^help\_adv$/xsi ) {
+                $HELP_ADV = 1;
 		print STDERR usage(), chr(10) or die("$!");
 		exit(0);
 	}
@@ -100,10 +108,10 @@ sub common() {
 
         my %valid_verbs = ();
         if( $UP_ONLY ) {
-            %valid_verbs = map {$_ => 1} qw( help up );
+            %valid_verbs = map {$_ => 1} qw( help help_adv up );
         }
         else {
-            %valid_verbs = map {$_ => 1} qw( help up cat def sql );
+            %valid_verbs = map {$_ => 1} qw( help help_adv up cat def sql );
         }
 
         if( ! exists( $valid_verbs{$VERB} ) ) {
@@ -561,16 +569,6 @@ sub usage() {
                 "                 but not across:",
                 "",
                 "                     \"app01\" and \"app02\"",
-                "",
-                "",
-                "    ADVANCED OPTIONS:",
-                "",
-		"    --dtz      - Time Zone to use for logs without time zone (default: GMT)",
-		"    --ids      - ids of the stream as a comma-separated list of name-value pairs",
-		"    --cfgs     - configs of the stream as a comma-separated list of name-value pairs",
-		"    --tags     - tags of the stream as a comma-separated list of name-value pairs",
-		"    --logstash - file is in logstash format with appropriate \@ze_ keys",
-		"",
 		"",
                 "    EXAMPLES:",
 		"",
@@ -584,6 +582,17 @@ sub usage() {
                 "    2. Ingest a continuous tail of /var/log/messages. When reading from a stream (e.g. STDIN) rather than from a file, ze requires the –log flag (assumes a .zerc configuration file exists):",
 		"",
                 "       tail -f /var/log/messages | ze up --log=varlogmsgs --svcgrp=monitor01 --help=mydbhost",
+		"",
+        ));
+        my $help_text_up_adv = join( chr( 10 ), (
+                "",
+                "    ADVANCED OPTIONS:",
+                "",
+		"    --dtz      - Time Zone to use for logs without time zone (default: GMT)",
+		"    --ids      - ids of the stream as a comma-separated list of name-value pairs",
+		"    --cfgs     - configs of the stream as a comma-separated list of name-value pairs",
+		"    --tags     - tags of the stream as a comma-separated list of name-value pairs",
+		"    --logstash - file is in logstash format with appropriate \@ze_ keys",
 		"",
         ));
         my $help_text_other = join( chr( 10 ), (
@@ -628,8 +637,16 @@ sub usage() {
 		"    --time   - limit results in time: truncating timestamp widens window",
 	));
         if( $UP_ONLY ) {
-            return( $help_text . "\n" . $help_text_up . "\n" );
+            if( $HELP_ADV ) {
+                return( $help_text . "\n" . $help_text_up . "\n" . $help_text_up_adv . "\n" );
+            } else {
+                return( $help_text . "\n" . $help_text_up . "\n" );
+            }
         } else {
-            return( $help_text . "\n" . $help_text_up . "\n" . $help_text_other ) ;
+            if( $HELP_ADV ) {
+                return( $help_text . "\n" . $help_text_up . "\n" . $help_text_up_adv . "\n" . $help_text_other . "\n" );
+            } else {
+                return( $help_text . "\n" . $help_text_up . "\n" . $help_text_other . "\n" ) ;
+            }
         }
 }
