@@ -581,7 +581,7 @@ sub usage() {
 		"",
                 "    2. Ingest a continuous tail of /var/log/messages. When reading from a stream (e.g. STDIN) rather than from a file, ze requires the –log flag (assumes a .zerc configuration file exists):",
 		"",
-                "       tail -f /var/log/messages | ze up --log=varlogmsgs --svcgrp=monitor01 --help=mydbhost",
+                "       tail -f /var/log/messages | ze up --log=varlogmsgs --svcgrp=monitor01 --host=mydbhost",
 		"",
         ));
         my $help_text_up_adv = join( chr( 10 ), (
