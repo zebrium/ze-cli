@@ -12,6 +12,8 @@ my ($AUTH, $URL) = @{rc()};
 
 my $LOGSTASH = 0;
 
+my $ZE_VERSION = '1.2.0-zecmd';
+
 my $UP_ONLY = 1;
 my $HELP_ADV = 0;
 
@@ -351,10 +353,11 @@ sub up() {
 	require JSON;
 
 	my %meta_data;
+        $meta_data{ 'ze_log_collector_vers' } = $ZE_VERSION;
 	$meta_data{ 'stream' } = 'native';
 	$meta_data{ 'ze_tm' } = $JSON::false;
 	if(length($fn)) {
-	        $meta_data{ 'stream' } = 'file';
+	        $meta_data{ 'stream' } = 'zefile';
 		unless(length($amap->{'log'})) {
 			if($fn=~m/(?=[^\/]++$)([a-zA-Z]{3,})/xs) {
 				$meta_data{'logbasename'} = lc($1);
@@ -369,8 +372,8 @@ sub up() {
 	}
 
 	$URL=~s/\/(?:sql|def|close|ask|cat|post|api|)\/?$//xs;
-	my $TOKEN_URL = join('/',($URL,'api/v2/token'));
-	my $POST_URL = join('/',($URL, $LOGSTASH ? 'log/api/v2/ingest?log_source=logstash&log_format=json_batch' : 'api/v2/post'));
+	my $TOKEN_URL = join('/',($URL,'log/api/v2/token'));
+	my $POST_URL = join('/',($URL, $LOGSTASH ? 'log/api/v2/ingest?log_source=logstash&log_format=json_batch' : 'log/api/v2/post'));
 
 	$curl_fn = length($fn) ? $fn : '-';
 
