@@ -403,6 +403,7 @@ sub up() {
 			$meta_fname,
 			$TOKEN_URL);
         my $result = `$cmd`;
+        chomp( $result );
         my $exit_code = $?;
         if( $exit_code != 0 ) {
             printf( STDERR "Unable to reach server\n" );
@@ -433,11 +434,20 @@ sub up() {
 			$curl_fn,
 			$POST_URL);
 	my $result = `$cmd`;
+        chomp( $result );
 	my $exit_code = $?;
 	if( $exit_code ) {
 		printf( STDERR "ERROR: Unable to send data\n" );
 		exit( $exit_code );
 	}
+        if( $result =~ /\<title\>(.*)\<\/title\>/xsi ) {
+            printf( STDERR "Unable to upload to server (%s)\n", $1 );
+            exit( 1 );
+        }
+        if( $result ne '' ) {
+            printf( STDERR "Unable to upload to server (%s)\n", $result );
+            exit( 1 );
+        }
 	printf( STDOUT "Sent successfully\n" );
 	unlink $meta_fname;
 	return();
