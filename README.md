@@ -108,3 +108,4 @@ tail -f /var/log/messages | ze up --log=varlogmsgs --svcgrp=monitor01 --help=myd
 * Larry Lancaster (Zebrium)
 * Dara Hazeghi (Zebrium)
 * Rod Bagg (Zebrium)
+* Rob Fair (Zebrium)

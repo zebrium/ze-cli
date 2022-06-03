@@ -12,6 +12,8 @@ my ($AUTH, $URL) = @{rc()};
 
 my $LOGSTASH = 0;
 
+my $USE_BATCH = 1;
+
 my $ZE_VERSION = '1.2.0-zecmd';
 
 my $UP_ONLY = 1;
@@ -142,6 +144,9 @@ sub common() {
 			splice(@ARGV,$i,1); $i--; next;
 		} elsif($arg=~m/^\-\-logstash$/xs) {
 			$LOGSTASH = 1;
+			splice(@ARGV,$i,1); $i--; next;
+		} elsif($arg=~m/^\-\-nobatch$/xs) {
+			$USE_BATCH = 0;
 			splice(@ARGV,$i,1); $i--; next;
 		}
 	}
@@ -324,6 +329,152 @@ sub sort_opts() {
     return( $a cmp $b );
 }
 
+sub begin_batch($) {
+	if (! $USE_BATCH) {
+		return '';
+	}
+	my $BATCH_URL=$_[0];
+
+		my %req_data;
+	$req_data{ 'retention_hours' } = 48;
+	$req_data{ 'processing_method' } = "opportunistic";
+	my ($req_fh, $req_fname) = tempfile();
+	print $req_fh JSON::encode_json(\%req_data);
+	$req_fh->flush();
+	my $cmd = sprintf("%s --silent -S --insecure -H \"Authorization: Token %s\" -H \"Content-Type: application/json\" -X POST -T %s \"%s\"",
+			$CURL,
+			$AUTH,
+			$req_fname,
+			$BATCH_URL);
+	my $result = `$cmd`;
+	# printf(STDOUT "%s", $result);
+	chomp( $result );
+	my $exit_code = $?;
+	unlink $req_fname;
+	if( $exit_code != 0 ) {
+		printf( STDERR "Unable to reach server\n" );
+		exit( 1 );
+	}
+	if( $result =~ /\<title\>(.*)\<\/title\>/xsi ) {
+		printf( STDERR "Unable to get API result from server (%s)\n", $1 );
+		exit( 1 );
+	}
+	my $data = JSON::decode_json($result);
+	my $batch_id = '';
+	if (exists($data->{'data'}{'batch_id'})) {
+		    $batch_id = $data->{'data'}{'batch_id'};
+	} else {
+		my $reason = 'Unknown';
+	   if( exists( $data->{'message'} )) {
+		    $reason = sprintf( "%s (%d)", $data->{'message'}, $data->{'code'} );
+		}
+		printf( STDERR "ERROR: No batch id returned by server\n" );
+		printf( STDERR "       Reason: %s\n", $reason );
+		printf( STDERR "       Please check that you have specified a valid auth token\n" );
+		exit( 1 );
+	}
+	# printf(STDERR "Batch upload id: %s\n",$batch_id);
+	return $batch_id;
+}
+
+sub cancel_batch($$) {
+	if (! $USE_BATCH) {
+		return;
+	}
+
+	my %req_data;
+	my $BATCH_URL=$_[0] . '/' . $_[1];
+
+	$req_data{ 'cancel' } = $JSON::true;
+	my ($req_fh, $req_fname) = tempfile();
+	print $req_fh JSON::encode_json(\%req_data);
+	$req_fh->flush();
+	my $cmd = sprintf("%s --silent -S --insecure -H \"Authorization: Token %s\" -H \"Content-Type: application/json\" -X PUT -T %s \"%s\"",
+			$CURL,
+			$AUTH,
+			$req_fname,
+			$BATCH_URL);
+	printf(STDERR "Cancelling batch upload id %s\n", $_[1]);
+	my $result = `$cmd`;
+	# printf(STDOUT "%s", $result);
+	chomp( $result );
+	my $exit_code = $?;
+	unlink $req_fname;
+	if( $exit_code != 0 ) {
+		printf( STDERR "Unable to reach server\n" );
+		exit( 1 );
+	}
+	if( $result =~ /\<title\>(.*)\<\/title\>/xsi ) {
+		printf( STDERR "Unable to get API result from server (%s)\n", $1 );
+		exit( 1 );
+	}
+	my $data = JSON::decode_json($result);
+	if (exists($data->{'data'}{'state'})) {
+		    my $new_state = $data->{'data'}{'state'};
+		    my $batch_id = $data->{'data'}{'batch_id'};
+		    printf(STDERR "State for batch upload %s is %s\n",
+		               $batch_id, $new_state);
+	} else {
+		my $reason = 'Unknown';
+	   if( exists( $data->{'message'} )) {
+		    $reason = sprintf( "%s (%d)", $data->{'message'}, $data->{'code'} );
+		}
+		printf( STDERR "ERROR: No state returned by server\n" );
+		printf( STDERR "       Reason: %s\n", $reason );
+		printf( STDERR "       Please check that you have specified a valid auth token\n" );
+		exit( 1 );
+	}
+}
+
+sub end_batch($$) {
+	my %req_data;
+	my $BATCH_URL=$_[0] . '/' . $_[1];
+
+	if (! $USE_BATCH) {
+		return;
+	}
+
+	$req_data{ 'uploads_complete' } = $JSON::true;
+	my ($req_fh, $req_fname) = tempfile();
+	print $req_fh JSON::encode_json(\%req_data);
+	$req_fh->flush();
+	my $cmd = sprintf("%s --silent -S --insecure -H \"Authorization: Token %s\" -H \"Content-Type: application/json\" -X PUT -T %s \"%s\"",
+			$CURL,
+			$AUTH,
+			$req_fname,
+			$BATCH_URL);
+	# printf(STDERR "Committing batch upload id %s\n", $_[1]);
+	my $result = `$cmd`;
+	# printf(STDOUT "%s", $result);
+	chomp( $result );
+	my $exit_code = $?;
+	unlink $req_fname;
+	if( $exit_code != 0 ) {
+		printf( STDERR "Unable to reach server\n" );
+		exit( 1 );
+	}
+	if( $result =~ /\<title\>(.*)\<\/title\>/xsi ) {
+		printf( STDERR "Unable to get API result from server (%s)\n", $1 );
+		exit( 1 );
+	}
+	my $data = JSON::decode_json($result);
+	if (exists($data->{'data'}{'state'})) {
+		    my $new_state = $data->{'data'}{'state'};
+		    my $batch_id = $data->{'data'}{'batch_id'};
+		    printf(STDERR "State for batch upload %s is %s\n",
+		               $batch_id, $new_state);
+	} else {
+		my $reason = 'Unknown';
+	   if( exists( $data->{'message'} )) {
+		    $reason = sprintf( "%s (%d)", $data->{'message'}, $data->{'code'} );
+		}
+		printf( STDERR "ERROR: No state returned by server\n" );
+		printf( STDERR "       Reason: %s\n", $reason );
+		printf( STDERR "       Please check that you have specified a valid auth token\n" );
+		exit( 1 );
+	}
+}
+
 sub up() {
 
 	my ($fn, $amap, $curl_fn ) = (undef, zargs($UP_SMAP, $UP_SKEYS), undef);
@@ -343,7 +494,7 @@ sub up() {
 		} elsif($arg=~m/^\-\-file$/xs) {
 			printf( STDERR "ERROR: File argument must be specified (--file=...)\n" );
 			exit( 1 );
-                }
+		        }
 	}
 
 	if( scalar(keys %$amap) == 0 and ! $LOGSTASH ) {
@@ -353,11 +504,11 @@ sub up() {
 	require JSON;
 
 	my %meta_data;
-        $meta_data{ 'ze_log_collector_vers' } = $ZE_VERSION;
+	$meta_data{ 'ze_log_collector_vers' } = $ZE_VERSION;
 	$meta_data{ 'stream' } = 'native';
 	$meta_data{ 'ze_tm' } = $JSON::false;
 	if(length($fn)) {
-	        $meta_data{ 'stream' } = 'zefile';
+                $meta_data{ 'stream' } = 'zefile';
 		unless(length($amap->{'log'})) {
 			if($fn=~m/(?=[^\/]++$)([a-zA-Z]{3,})/xs) {
 				$meta_data{'logbasename'} = lc($1);
@@ -367,12 +518,15 @@ sub up() {
 		}
 	} else {
 	        if( ! exists( $amap->{'log'} ) and ! $LOGSTASH ) {
-                    die("$0: logbasename must be specified for streaming (--log=...)");
+			die("$0: logbasename must be specified for streaming (--log=...)");
 	        }
+            # Do not use a batch for continuous streaming input.
+            $USE_BATCH=0;
 	}
 
 	$URL=~s/\/(?:sql|def|close|ask|cat|post|api|)\/?$//xs;
 	my $TOKEN_URL = join('/',($URL,'log/api/v2/token'));
+	my $BATCH_URL = join('/',($URL,'log/api/v2/batch'));
 	my $POST_URL = join('/',($URL, $LOGSTASH ? 'log/api/v2/ingest?log_source=logstash&log_format=json_batch' : 'log/api/v2/post'));
 
 	$curl_fn = length($fn) ? $fn : '-';
@@ -380,7 +534,7 @@ sub up() {
 	my $amap_keys = [keys %$amap];
 	foreach my $key( sort sort_opts @$amap_keys) {
 		if ($key =~ m/^log/xs) {
-	                $meta_data{ 'logbasename' } = $amap->{$key};
+                        $meta_data{ 'logbasename' } = $amap->{$key};
                 } elsif ($key =~ m/^dtz/xs) {
                         $meta_data{ 'tz' } = $amap->{$key};
                 } elsif ($key =~ m/^host/xs) {
@@ -389,8 +543,17 @@ sub up() {
                         $meta_data{ 'ids' }{'ze_deployment_name'} = $amap->{$key};
 		} else {
 			my %kvs = split /[,=]/, $amap->{$key};
-	                $meta_data{ $key } = \%kvs;
+		            $meta_data{ $key } = \%kvs;
 		}
+	}
+	if (exists($meta_data{'cfgs'}{'ze_batch_id'}) && $USE_BATCH) {
+		printf(STDERR "'ze_batch_id' detected in cfgs, 'ze up' will not create a new batch upload\n");
+		$USE_BATCH=0;
+	}
+	my $batch_id = '';
+	if ($USE_BATCH) {
+		$batch_id = begin_batch($BATCH_URL);
+		$meta_data{'cfgs'}{'ze_batch_id'}=$batch_id;
 	}
 	my $json_text = JSON::encode_json(\%meta_data);
 	my ($meta_fh, $meta_fname) = tempfile();
@@ -402,52 +565,58 @@ sub up() {
 			$AUTH,
 			$meta_fname,
 			$TOKEN_URL);
-        my $result = `$cmd`;
-        chomp( $result );
-        my $exit_code = $?;
-        if( $exit_code != 0 ) {
-            printf( STDERR "Unable to reach server\n" );
-            exit( 1 );
-        }
-        if( $result =~ /\<title\>(.*)\<\/title\>/xsi ) {
-            printf( STDERR "Unable to get API result from server (%s)\n", $1 );
-            exit( 1 );
-        }
-        my $data = JSON::decode_json($result);
-        my $stream_token = '';
-        if (exists($data->{'token'})) {
-                $stream_token = $data->{'token'};
-        } else {
+	my $result = `$cmd`;
+	chomp( $result );
+	my $exit_code = $?;
+	if( $exit_code != 0 ) {
+	    printf( STDERR "Unable to reach server\n" );
+	    exit( 1 );
+	}
+	if( $result =~ /\<title\>(.*)\<\/title\>/xsi ) {
+	    printf( STDERR "Unable to get API result from server (%s)\n", $1 );
+	    cancel_batch($BATCH_URL, $batch_id);
+	    exit( 1 );
+	}
+	my $data = JSON::decode_json($result);
+	my $stream_token = '';
+	if (exists($data->{'token'})) {
+	        $stream_token = $data->{'token'};
+	} else {
 		my $reason = 'Unknown';
-		if( exists( $data->{'description'} ) && exists( $data->{'title'} ) ) {
-			$reason = sprintf( "%s - %s", $data->{'title'}, $data->{'description'} );
+		if( exists( $data->{'message'} )) {
+			$reason = sprintf( "%s", $data->{'message'});
 		}
 		printf( STDERR "ERROR: No stream token returned by server\n" );
 		printf( STDERR "       Reason: %s\n", $reason );
 		printf( STDERR "       Please check that you have specified a valid auth token\n" );
+		cancel_batch($BATCH_URL, $batch_id);
 		exit( 1 );
-        }
+	}
 
-        my $cmd = sprintf("%s --silent -S --insecure -H \"Authorization: Token %s\" -H \"Content-Type: application/octet-stream\" -H \"Transfer-Encoding: chunked\" -X POST -T %s \"%s\"",
+	my $cmd = sprintf("%s --silent -S --insecure -H \"Authorization: Token %s\" -H \"Content-Type: application/octet-stream\" -H \"Transfer-Encoding: chunked\" -X POST -T %s \"%s\"",
 			$CURL,
 			$LOGSTASH ? $AUTH : $stream_token,
 			$curl_fn,
 			$POST_URL);
 	my $result = `$cmd`;
-        chomp( $result );
+    chomp( $result );
 	my $exit_code = $?;
 	if( $exit_code ) {
 		printf( STDERR "ERROR: Unable to send data\n" );
+		cancel_batch($BATCH_URL, $batch_id);
 		exit( $exit_code );
 	}
-        if( $result =~ /\<title\>(.*)\<\/title\>/xsi ) {
-            printf( STDERR "Unable to upload to server (%s)\n", $1 );
-            exit( 1 );
-        }
-        if( $result ne '' ) {
-            printf( STDERR "Unable to upload to server (%s)\n", $result );
-            exit( 1 );
-        }
+	if( $result =~ /\<title\>(.*)\<\/title\>/xsi ) {
+	    printf( STDERR "Unable to upload to server (%s)\n", $1 );
+	    cancel_batch($BATCH_URL, $batch_id);
+	    exit( 1 );
+	}
+	if( $result ne '' ) {
+	    printf( STDERR "Unable to upload to server (%s)\n", $result );
+	    cancel_batch($BATCH_URL, $batch_id);
+	    exit( 1 );
+	}
+	end_batch($BATCH_URL, $batch_id);
 	printf( STDOUT "Sent successfully\n" );
 	unlink $meta_fname;
 	return();
@@ -557,6 +726,7 @@ sub usage() {
                 "    [--cfgs=<name1=val1,name2=val2,...]                                              \\",
 		"    [--tags=<name1=val1,name2=val2,...]                                              \\",
 		"    [--logstash]",
+		"    [--nobatch]",
 		"",
 		"",
 		"    --url      - Zebrium Log Collector URL <ZE_LOG_COLLECTOR_URL> (omit to look for url=<url> line in $HOME/.zerc)",
@@ -606,6 +776,7 @@ sub usage() {
 		"    --cfgs     - configs of the stream as a comma-separated list of name-value pairs",
 		"    --tags     - tags of the stream as a comma-separated list of name-value pairs",
 		"    --logstash - file is in logstash format with appropriate \@ze_ keys",
+        "    --nobatch  - do not use batch upload functionality",
 		"",
         ));
         my $help_text_other = join( chr( 10 ), (
