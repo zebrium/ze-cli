@@ -1,6 +1,6 @@
 # Zebrium batch uploads and ze CLI
 Zebrium batch uploads provide a way for grouping one or more related uploads so 
-that they can be monitored and managed later as unit. Each batch has a unique id 
+that they can be monitored and managed later as a unit. Each batch has a unique id 
 used to identify the batch.
 
 ## Batch Uploads vs Service Groups
@@ -9,7 +9,9 @@ Batch uploads are different from service groups:
 
 * **Service groups** provide a semantic connection across the data in uploads when looking for incidents.
 
-* **Batch uploads** manage the process of uploading and processing data, for example monitoring if a batch is completed, how many lines of data have been ingested and so forth.
+* **Batch uploads** manage the overall phases of uploading and processing data in
+related logs, for example monitoring if a batch is completed, how many lines 
+of data have been ingested for, the time taken, and so forth.
 
 ## Integration into ze cli 
 Batch uploads are integrated into the `ze` CLI in the following main ways:
@@ -18,12 +20,12 @@ Batch uploads are integrated into the `ze` CLI in the following main ways:
 The batch id is displayed when the upload is finished so progress can be 
 monitored using the  `ze batch state` and `ze batch show` CLIs, described below.
 
-* A set of related uploads, using the `ze up` CLI, can be associated with a specifica 
+* A set of related uploads, using the `ze up` CLI, can be associated with a specific
 batch id that has been created earlier using the `ze batch begin` CLI. 
 When all the logs for the batch are uploaded, the batch should be completed 
 using `ze batch end`, or if there are errors the batch can be cancelled 
 using `ze batch cancel`. 
-When `ze batch end` is used all the logs are processed together by Zebrium.
+When `ze batch end` is used all the logs for that batch are processed together by Zebrium.
 
 ## ze batch CLI subcommand
 
