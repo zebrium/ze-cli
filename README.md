@@ -92,6 +92,9 @@ Use `ze help` for a complete list of command options.
 ### Advanced Options
 Use `ze help_adv` for a complete list of advanced options.
 
+### Batch Uploads
+ze supports batch uploads. See [here](ze_batch_uploads.md) for usage.
+
 ## Examples
 1. Ingest three log files associated with the same support case \"sr12345\" (does not assume a .zerc configuration file exists)
 ```
