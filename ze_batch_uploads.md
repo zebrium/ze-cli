@@ -97,7 +97,23 @@ End the batch:
 ze batch end ... --batch_id=baxyz7357473aac1
 ```
 
-The batch upload can be monitored as in the previous example, using the `ze batch state` and `ze batch show` subcommands.
+The batch upload can be monitored as in the previous example, using the `ze batch state` and `ze batch show` subcommands. 
 
+## Batch_upload.sh script
+The batch_upload.sh script wraps multiple logs with a batch upload in a single step. 
+
+Download `bin/batch_upload.sh` from the Zebrium GitHub repository here: [https://github.com/zebrium/ze-cli](https://github.com/zebrium/ze-cli)
+
+This example uploads all files from `/var/log` using a custom host option to `ze`:
+
+```
+batch_upload.sh -o '--host=myhost' /var/log/*.log
+```
+
+Use `batch_upload.sh -h` for full options. 
+
+*Note*: The upload URL and authentication must be supplied on the command line
+using `-u` and `-a` options if you are not using a `.zerc` file. Do not use the `ze --url` 
+or `ze --auth` options.
 
 
