@@ -40,7 +40,7 @@ ze batch show  [--url=<url>] [--auth=<auth>] -batch_id=<batch_id>
 
 ```
 ## Examples
-### Upload a large log, monitoringing its progress
+### Upload a large log, monitoring its progress
 Upload a log file, on success the new batch id is displayed, usually with a *Processing* state, meaning the log has been accepted by Zebrium and is being scanned for incidents:
 
 ```
