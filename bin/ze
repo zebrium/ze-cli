@@ -552,7 +552,7 @@ sub batch_show($) {
         printf(STDOUT "         Batch ID: %s\n", $data->{'batch_id'});
         printf(STDOUT "            State: %s\n", $data->{'state'});
         if (length($data->{'reason'}) > 0) {
-            printf(STDOUT    "Failure Reason: %s\n", $data->{'reason'});
+            printf(STDOUT "   Failure Reason: %s\n", $data->{'reason'});
         }
         printf(STDOUT "          Created: %s\n", $data->{'created'});
         printf(STDOUT "  Completion Time: %s\n", $data->{'completion_time'});
@@ -675,6 +675,10 @@ sub up() {
 		            $meta_data{ $key } = \%kvs;
 		}
 	}
+        if ( ! exists( $meta_data{'ids'}{'ze_deployment_name'} ) ) {
+                print STDERR "$0: WARNING: --svcgrp not set. Using default.\n" or die("$!");
+                $meta_data{'ids'}{'ze_deployment_name'} = 'default';
+        }
 	if (exists($meta_data{'cfgs'}{'ze_batch_id'}) && $USE_BATCH) {
 		printf(STDERR "'ze_batch_id' detected in cfgs, 'ze up' will not create a new batch upload\n");
 		$USE_BATCH=0;
@@ -924,11 +928,11 @@ sub usage() {
 		     "     [--auth=<token>] [--url=<url>]   ",
              "",
              "  Subcommands:",
-             "    ze batch begin [--batch_id <batch_id>] --  Create new batch upload",
-             "    ze batch end    --batch_id <batch_id>  --  Mark uploads for batch completed",
-             "    ze batch state  --batch_id <batch_id>  --  Show the state of a batch upload",
-             "    ze batch show   --batch_id <batch_id>  --  Show details of a batch upload",
-             "    ze batch cancel --batch_id <batch_id>  --  Cancel batch being uploaded",
+             "    ze batch begin [--batch_id=<batch_id>] --  Create new batch upload",
+             "    ze batch end    --batch_id=<batch_id>  --  Mark uploads for batch completed",
+             "    ze batch state  --batch_id=<batch_id>  --  Show the state of a batch upload",
+             "    ze batch show   --batch_id=<batch_id>  --  Show details of a batch upload",
+             "    ze batch cancel --batch_id=<batch_id>  --  Cancel batch being uploaded",
              "",
         ));
         my $help_text_other = join( chr( 10 ), (
