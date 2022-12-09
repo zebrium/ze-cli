@@ -14,6 +14,7 @@ import (
 var cfgFile string
 var auth string
 var url string
+var version = "1.0.0"
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -21,6 +22,7 @@ var rootCmd = &cobra.Command{
 	Short: "Zebrium CLI",
 	Long: `ze is a CLI library for Zebrium. This application allows uses to submit local files to Zebrium.  
 This also provides support for interacting with Batch bundles`,
+	Version: version,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

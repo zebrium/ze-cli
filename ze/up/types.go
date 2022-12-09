@@ -3,12 +3,17 @@
 package up
 
 type MetaData struct {
-	Stream             string            `json:"stream"`
-	Logbasename        string            `json:"logbasename"`
-	LogType            string            `json:"log_type"`
-	Ids                map[string]string `json:"ids"`
-	Cfgs               map[string]string `json:"cfgs"`
-	Tags               map[string]string `json:"tags"`
-	Tz                 string            `json:"tz"`
-	ZeLogCollectorVers string            `json:"ze_log_collector_vers"`
+	Stream             string            `json:"stream,omitempty"`
+	LogBaseName        string            `json:"logbasename"`
+	LogType            string            `json:"log_type,omitempty"`
+	Ids                map[string]string `json:"ids,omitempty"`
+	Cfgs               map[string]string `json:"cfgs,omitempty"`
+	Tags               map[string]string `json:"tags,omitempty"`
+	Tz                 string            `json:"tz,omitempty"`
+	ZeLogCollectorVers string            `json:"ze_log_collector_vers,omitempty"`
+	TM                 bool              `json:"ze_tm,omitempty"`
+}
+
+type TokenResp struct {
+	Token string `json:"token"`
 }

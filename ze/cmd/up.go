@@ -19,10 +19,12 @@ var upCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		common.ValidateAuthToken(viper.GetString("auth"))
 		common.ValidateZapiUrl(viper.GetString("url"))
+		common.ValidateUpMetadata(viper.GetString("filename"), viper.GetString("logtype"), viper.GetBool("logstash"),
+			viper.GetString("batchId"), viper.GetString("cfgs"))
 		file, _ := cmd.Flags().GetString("file")
 		err := up.UploadFile(viper.GetString("url"), viper.GetString("auth"), file, viper.GetString("logtype"), viper.GetString("host"), viper.GetString("svcgrp"),
 			viper.GetString("dtz"), viper.GetString("ids"), viper.GetString("cfgs"), viper.GetString("tags"),
-			viper.GetString("batchId"), viper.GetBool("nobatch"), viper.GetBool("logstash"))
+			viper.GetString("batchId"), viper.GetBool("nobatch"), viper.GetBool("logstash"), version)
 		if err != nil {
 			log.Fatal(err.Error())
 		}
@@ -32,7 +34,7 @@ var upCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(upCmd)
-	upCmd.Flags().StringP("file", "f", "", "File path to upload (required)")
+	upCmd.Flags().StringP("file", "f", "", "File path to upload")
 	upCmd.Flags().StringP("logtype", "l", "", "Logtype of file being uploaded.  Set to 'stream' if using STDIN.  Defaults to base name from file")
 	upCmd.Flags().String("host", "", "Hostname or other identifier representing the source of the file being uploaded")
 	upCmd.Flags().String("svcgrp", "default", "Defines a failure domain boundary for anomaly correlation. Learn more: https://docs.zebrium.com/docs/concepts/service-group")
@@ -43,7 +45,6 @@ func init() {
 	upCmd.Flags().StringP("batchId", "b", "", "Existing batch id to use")
 	upCmd.Flags().Bool("logstash", false, "File is in the logstash format")
 	upCmd.Flags().Bool("nobatch", false, "Disables batch processing for upload")
-	upCmd.MarkFlagRequired("file")
 	viper.BindPFlags(upCmd.Flags())
 
 }
