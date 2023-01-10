@@ -1,13 +1,11 @@
-/*
-Copyright © 2022 ScienceLogic Inc
-*/
+// Package cmd Copyright © 2023 ScienceLogic Inc/*
 package cmd
 
 import (
 	"fmt"
 	"github.com/spf13/viper"
-	"github.com/zebrium/ze-cli/ze/batch"
-	"github.com/zebrium/ze-cli/ze/common"
+	"github.com/zebrium/ze-cli/batch"
+	"github.com/zebrium/ze-cli/common"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -19,9 +17,26 @@ var cancelCmd = &cobra.Command{
 	Short: "cancel a batch",
 	Long:  `Cancel a batch job and ends all further processing`,
 	Run: func(cmd *cobra.Command, args []string) {
-		common.ValidateAuthToken(viper.GetString("auth"))
-		common.ValidateZapiUrl(viper.GetString("url"))
-		batch.ValidateId(batchId)
+		batchId, err := cmd.Flags().GetString("batchId")
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		err = common.ValidateAuthToken(viper.GetString("auth"))
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		err = common.ValidateZapiUrl(viper.GetString("url"))
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		err = common.ValidateBatchId(batchId)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 		resp, err := batch.Cancel(viper.GetString("url"), viper.GetString("auth"), batchId)
 		if err != nil {
 			fmt.Println(err.Error())
@@ -38,6 +53,15 @@ var cancelCmd = &cobra.Command{
 
 func init() {
 	batchCmd.AddCommand(cancelCmd)
-	cancelCmd.Flags().StringVarP(&batchId, "batchId", "b", "", "Batch ID (required)")
-	cancelCmd.MarkFlagRequired("batchId")
+	cancelCmd.Flags().StringP("batchId", "b", "", "Batch ID (required)")
+	err := cancelCmd.MarkFlagRequired("batchId")
+	if err != nil {
+		println(err)
+		os.Exit(1)
+	}
+	err = viper.BindPFlags(cancelCmd.Flags())
+	if err != nil {
+		println(err)
+		os.Exit(1)
+	}
 }

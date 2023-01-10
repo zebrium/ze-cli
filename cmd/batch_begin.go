@@ -1,14 +1,12 @@
-/*
-Copyright © 2022 ScienceLogic Inc
-*/
+// Package cmd Copyright © 2023 ScienceLogic Inc/*
 package cmd
 
 import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/zebrium/ze-cli/ze/batch"
-	"github.com/zebrium/ze-cli/ze/common"
+	"github.com/zebrium/ze-cli/batch"
+	"github.com/zebrium/ze-cli/common"
 	"os"
 )
 
@@ -18,10 +16,27 @@ var beginCmd = &cobra.Command{
 	Short: "initialize a batch",
 	Long:  `Initialize a Batch Upload to Zebrium.  This is the first step in submitting a batched bundle.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		common.ValidateAuthToken(viper.GetString("auth"))
-		common.ValidateZapiUrl(viper.GetString("url"))
+		batchId, err := cmd.Flags().GetString("batchId")
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		err = common.ValidateAuthToken(viper.GetString("auth"))
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		err = common.ValidateZapiUrl(viper.GetString("url"))
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 		if batchId != "" {
-			batch.ValidateId(batchId)
+			err = common.ValidateBatchId(batchId)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
 		}
 		resp, err := batch.Begin(viper.GetString("url"), viper.GetString("auth"), batchId)
 		if err != nil {
@@ -39,5 +54,6 @@ var beginCmd = &cobra.Command{
 
 func init() {
 	batchCmd.AddCommand(beginCmd)
-	beginCmd.Flags().StringVarP(&batchId, "batchId", "b", "", "Sets custom batchId.  If not set, a random id will be generated")
+	beginCmd.Flags().StringP("batchId", "b", "", "Sets custom batchId.  If not set, a random id will be generated")
+
 }

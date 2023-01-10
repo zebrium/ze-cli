@@ -1,4 +1,4 @@
-// Copyright (c) 2023 ScienceLogic Inc
+// Package batch Copyright © 2023 ScienceLogic Inc/*
 
 package batch
 
@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"time"
 )
@@ -113,14 +112,20 @@ func Cancel(url string, auth string, batchId string) (response *CancelBatchResp,
 	return respMap, nil
 }
 
-func (this showBatchData) String() string {
-	fmtUploadTime := formatTime(this.UploadTimeSecs)
-	fmtProcessingTime := formatTime(this.ProcessingTimeSecs)
+func (d showBatchData) String() (string, error) {
+	fmtUploadTime, err := formatTime(d.UploadTimeSecs)
+	if err != nil {
+		return "", err
+	}
+	fmtProcessingTime, err := formatTime(d.ProcessingTimeSecs)
+	if err != nil {
+		return "", err
+	}
 	response := fmt.Sprintf(
 		"         Batch ID: %s\n"+
-			"            State: %s\n", this.BatchID, this.State)
-	if len(this.Reason) > 0 {
-		response = response + fmt.Sprintf("   Failure Reason: %s\n", this.Reason)
+			"            State: %s\n", d.BatchID, d.State)
+	if len(d.Reason) > 0 {
+		response = response + fmt.Sprintf("   Failure Reason: %s\n", d.Reason)
 	}
 	return response + fmt.Sprintf(
 		"          Created: %s\n"+
@@ -132,16 +137,13 @@ func (this showBatchData) String() string {
 			"Bundles Completed: %d\n"+
 			"      Upload time: %s\n"+
 			"  Processing time: %s\n",
-		this.Created, this.CompletionTime, this.ExpirationTime, this.RetentionHours, this.Lines, this.Bundles, this.BundlesCompleted, fmtUploadTime, fmtProcessingTime)
+		d.Created, d.CompletionTime, d.ExpirationTime, d.RetentionHours, d.Lines, d.Bundles, d.BundlesCompleted, fmtUploadTime, fmtProcessingTime), nil
 }
 
-func formatTime(duration int) string {
+func formatTime(duration int) (string, error) {
 	seconds, err := time.ParseDuration(fmt.Sprintf("%ds", duration))
 	if err != nil {
-		log.Fatal(err.Error())
+		return "", err
 	}
-	return seconds.String()
-}
-func ValidateId(batchId string) {
-
+	return seconds.String(), nil
 }

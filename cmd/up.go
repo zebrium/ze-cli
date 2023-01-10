@@ -1,14 +1,14 @@
-/*
-Copyright © 2022 ScienceLogic Inc
-*/
+// Package cmd Copyright © 2023 ScienceLogic Inc/*
 package cmd
 
 import (
+	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/zebrium/ze-cli/ze/common"
-	"github.com/zebrium/ze-cli/ze/up"
+	"github.com/zebrium/ze-cli/common"
+	"github.com/zebrium/ze-cli/up"
 	"log"
+	"os"
 )
 
 // upCmd represents the up command
@@ -17,18 +17,29 @@ var upCmd = &cobra.Command{
 	Short: "Upload a file to Zebrium",
 	Long:  `Uploads a file to or tar file to Zebrium for analysis`,
 	Run: func(cmd *cobra.Command, args []string) {
-		common.ValidateAuthToken(viper.GetString("auth"))
-		common.ValidateZapiUrl(viper.GetString("url"))
-		common.ValidateUpMetadata(viper.GetString("filename"), viper.GetString("logtype"), viper.GetBool("logstash"),
+		err := common.ValidateAuthToken(viper.GetString("auth"))
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		err = common.ValidateZapiUrl(viper.GetString("url"))
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		err = common.ValidateUpMetadata(viper.GetString("file"), viper.GetString("logtype"), viper.GetBool("logstash"),
 			viper.GetString("batchId"), viper.GetString("cfgs"))
-		file, _ := cmd.Flags().GetString("file")
-		err := up.UploadFile(viper.GetString("url"), viper.GetString("auth"), file, viper.GetString("logtype"), viper.GetString("host"), viper.GetString("svcgrp"),
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		err = up.UploadFile(viper.GetString("url"), viper.GetString("auth"), viper.GetString("file"), viper.GetString("logtype"), viper.GetString("host"), viper.GetString("svcgrp"),
 			viper.GetString("dtz"), viper.GetString("ids"), viper.GetString("cfgs"), viper.GetString("tags"),
 			viper.GetString("batchId"), viper.GetBool("nobatch"), viper.GetBool("logstash"), version)
 		if err != nil {
 			log.Fatal(err.Error())
 		}
-
+		println("Upload Completed successfully")
 	},
 }
 
@@ -45,6 +56,10 @@ func init() {
 	upCmd.Flags().StringP("batchId", "b", "", "Existing batch id to use")
 	upCmd.Flags().Bool("logstash", false, "File is in the logstash format")
 	upCmd.Flags().Bool("nobatch", false, "Disables batch processing for upload")
-	viper.BindPFlags(upCmd.Flags())
+	err := viper.BindPFlags(upCmd.Flags())
+	if err != nil {
+		println(err)
+		os.Exit(1)
+	}
 
 }

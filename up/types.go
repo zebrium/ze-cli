@@ -1,4 +1,4 @@
-// Copyright (c) 2022 ScienceLogic Inc
+// Package up Copyright © 2023 ScienceLogic Inc/*
 
 package up
 

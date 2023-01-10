@@ -1,6 +1,4 @@
-/*
-Copyright © 2022 Zebrium Inc
-*/
+// Package cmd Copyright © 2023 ScienceLogic Inc/*
 package cmd
 
 import (
@@ -12,8 +10,6 @@ import (
 )
 
 var cfgFile string
-var auth string
-var url string
 var version = "1.0.0"
 
 // rootCmd represents the base command when called without any subcommands
@@ -37,10 +33,15 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.ze.yaml)")
-	rootCmd.PersistentFlags().StringP("url", "u", "", "Zapi endpoint")
-	rootCmd.PersistentFlags().StringP("auth", "a", "", "Zebrium authentication token")
-	viper.BindPFlag("url", rootCmd.PersistentFlags().Lookup("url"))
-	viper.BindPFlag("auth", rootCmd.PersistentFlags().Lookup("auth"))
+	rootCmd.PersistentFlags().StringP("url", "u", "https://cloud.zebrium.com", "Zapi endpoint.")
+	rootCmd.PersistentFlags().StringP("auth", "a", "", "Zebrium authentication token.  Can be found under Integrations & Collectors in the Zebrium UI ")
+	rootCmd.PersistentFlags().StringP("api", "t", "", "Zebrium API token.  Can be found under Access Tokens in the Zebrium UI")
+	err := viper.BindPFlags(rootCmd.PersistentFlags())
+	if err != nil {
+		println(err)
+		os.Exit(1)
+	}
+
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -63,6 +64,6 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+		_, _ = fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	}
 }
