@@ -15,7 +15,7 @@ import (
 var upCmd = &cobra.Command{
 	Use:   "up",
 	Short: "Upload a file to Zebrium",
-	Long:  `Uploads a file to or tar file to Zebrium for analysis`,
+	Long:  `Uploads a file or tar file to Zebrium for analysis`,
 	Run: func(cmd *cobra.Command, args []string) {
 		err := common.ValidateAuthToken(viper.GetString("auth"))
 		if err != nil {

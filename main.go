@@ -1,6 +1,4 @@
-/*
-Copyright © 2022 Zebrium Inc
-*/
+// Package main Copyright © 2023 ScienceLogic Inc/*
 package main
 
 import (

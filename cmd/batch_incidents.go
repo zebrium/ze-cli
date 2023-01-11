@@ -25,8 +25,8 @@ to quickly create a Cobra application.`,
 
 func init() {
 	batchCmd.AddCommand(batchIncidentsCmd)
-	batchIncidentsCmd.Flags().Int("timeFrom", 1, "Include Incidents created after this epoch time (use 1 as beginning of time)")
-	batchIncidentsCmd.Flags().Int("timeTo", 999999999999, "Include Incidents created before this epoch time (use 999999999999 as all time)")
+	batchIncidentsCmd.Flags().String("timeFrom", "1", "Include Incidents created after this epoch time (use 1 as beginning of time)")
+	batchIncidentsCmd.Flags().String("timeTo", "999999999999", "Include Incidents created before this epoch time (use 999999999999 as all time)")
 	batchIncidentsCmd.Flags().String("timezone", "UTC", "Time zone name for time_from - time_to specification.")
 	batchIncidentsCmd.Flags().String("repeatingIncidents", "first", "Include 'first' or 'all' occurrence(s) of an Incident Type")
 	batchIncidentsCmd.Flags().StringP("batchId", "b", "", "Batch ID (required)")
