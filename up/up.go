@@ -1,4 +1,4 @@
-// Package up Copyright © 2023 ScienceLogic Inc/*
+// Package up Copyright © 2023 ScienceLogic Inc
 
 package up
 
@@ -18,38 +18,46 @@ var tokenPath = "log/api/v2/token"
 var logstashPath = "log/api/v2/ingest?log_source=logstash&log_format=json_batch"
 var postPath = "log/api/v2/post"
 
+// UploadFile Main processing function for uploading a file to Zebrium's backend. 
 func UploadFile(url string, auth string, file string, logtype string, host string, svcgrp string,
 	dtz string, ids string, cfgs string, tags string, batchId string, disableBatch bool, logstash bool,
 	version string) (err error) {
+	
+	defer func() {
+		if err != nil {
+			cleanUpBatchOnExit(batchId)
+		}
+	}()
+	
 	route := postPath
-	client := &http.Client{}
-
-	metadata, existingBatch, err := generateMetadata(url, auth, file, logtype, host, svcgrp, dtz, ids, cfgs, tags, batchId, disableBatch, version)
+	tr := &http.Transport{
+		MaxIdleConns: 10,
+		WriteBufferSize: 32768,
+		}
+	client := &http.Client{Transport: tr}
+	//TODO Generated batch Id is lost and never closed - Testing Gap
+	metadata, existingBatch, updatedBatchId, err := generateMetadata(url, auth, file, logtype, host, svcgrp, dtz, ids, cfgs, tags, batchId, disableBatch, version)
 	if err != nil {
-		cleanUpBatchOnExit(batchId)
 		return err
 	}
 	body, err := json.Marshal(metadata)
 	if err != nil {
-		cleanUpBatchOnExit(batchId)
 		return err
 	}
-	//Request Stream Token
+	// request stream token
 	req, err := http.NewRequest("POST", fmt.Sprintf("%s/%s", url, tokenPath), bytes.NewBuffer(body))
 	if err != nil {
-		cleanUpBatchOnExit(batchId)
 		return err
 	}
 	req.Header.Add("Authorization", fmt.Sprintf("Token %s", auth))
 	req.Header.Add("Content-Type", "application/json")
+	req.Close = true
 	resp, err := client.Do(req)
 	if err != nil {
-		cleanUpBatchOnExit(batchId)
 		return err
 	}
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		cleanUpBatchOnExit(batchId)
 		return err
 	}
 	tokenResp := &TokenResp{}
@@ -66,20 +74,19 @@ func UploadFile(url string, auth string, file string, logtype string, host strin
 	req, err = sendRequestBuilder(url, route, file)
 
 	if err != nil {
-		cleanUpBatchOnExit(batchId)
 		return err
 	}
 
 	req.Header.Add("Authorization", fmt.Sprintf("Token %s", uploadAuth))
+	req.Close = true
 	resp, err = client.Do(req)
 	if err != nil {
-		cleanUpBatchOnExit(batchId)
 		return err
 	}
 
-	//Close batch
+	// Close batch
 	if !disableBatch && !existingBatch {
-		_, err = batch.End(url, auth, batchId)
+		_, err = batch.End(url, auth, updatedBatchId)
 		if err != nil {
 			return err
 		}
@@ -87,8 +94,10 @@ func UploadFile(url string, auth string, file string, logtype string, host strin
 	return nil
 }
 
+// sendRequestBuilder Builds the request for sending log files.  
+// Will switch between Readers based on if a file is present or if Stdin is the intended target
 func sendRequestBuilder(url string, route string, filename string) (*http.Request, error) {
-	if filename != "" {
+	if len(filename) != 0 {
 		file, err := os.Open(filename)
 		if err != nil {
 			return nil, err
@@ -110,10 +119,10 @@ func sendRequestBuilder(url string, route string, filename string) (*http.Reques
 
 	}
 }
-
+// createMap Helper function for creating mapping passed in metadata in a key=value csv form to a string map
 func createMap(in string) (result map[string]string) {
 	m := make(map[string]string)
-	if len(in) > 0 {
+	if len(in) != 0 {
 		args := strings.Split(in, ",")
 		for _, e := range args {
 			kvp := strings.Split(e, "=")
@@ -123,8 +132,9 @@ func createMap(in string) (result map[string]string) {
 	return m
 }
 
+// cleanUpBatchOnExit Helper function to clean up autogenerate batchId's on error of exit
 func cleanUpBatchOnExit(batchId string) {
-	if batchId != "" {
+	if len(batchId) != 0 {
 		_, err := batch.Cancel(viper.GetString("url"), viper.GetString("auth"), batchId)
 		if err != nil {
 			fmt.Println(err)
@@ -133,19 +143,22 @@ func cleanUpBatchOnExit(batchId string) {
 	}
 }
 
+// generateMetadata Helper function that generates the metadata struct that is needed to request a stream token
 func generateMetadata(url string, auth string, file string, logtype string, host string, svcgrp string,
 	dtz string, ids string, cfgs string, tags string, batchId string, disableBatch bool,
-	version string) (metadata MetaData, existingBatch bool, err error) {
+	version string) (metadata MetaData, existingBatch bool, updatedBatchId string, err error) {
 	existingBatch = true
+	updatedBatchId = batchId
 	metadata = MetaData{
 		Stream:             "native",
 		ZeLogCollectorVers: version,
 		TM:                 false,
 	}
 
-	if file != "" {
+	if len(file) != 0 {
 		metadata.Stream = "zefile"
-		if logtype == "" {
+		//TODO: This is broken with relative paths.  need to parse file to use just filename 
+		if len(logtype) != 0 {
 			metadata.LogBaseName = strings.ToLower(strings.Split(strings.TrimSpace(file), ".")[0])
 		}
 	} else {
@@ -155,27 +168,27 @@ func generateMetadata(url string, auth string, file string, logtype string, host
 	metadata.Ids = createMap(ids)
 	metadata.Cfgs = createMap(cfgs)
 	metadata.Tags = createMap(tags)
-	if logtype != "" {
+	if len(logtype) != 0 {
 		metadata.LogBaseName = logtype
 	}
-	if host != "" {
+	if len(host) != 0 {
 		metadata.Ids["zid_host"] = host
 	}
-	if svcgrp != "" {
+	if len(svcgrp) != 0 {
 		metadata.Ids["ze_deployment_name"] = svcgrp
 	}
-	//Generate a new batch upload if needed
-	if !disableBatch && batchId == "" && !strings.Contains(cfgs, "ze_batch_id") {
+	// Generate a new batch upload if needed
+	if !disableBatch && len(updatedBatchId) == 0 && !strings.Contains(cfgs, "ze_batch_id") {
 		batchResp, err := batch.Begin(url, auth, "")
 		if err != nil {
-			return metadata, false, err
+			return metadata, false, updatedBatchId, err
 		}
 		existingBatch = false
-		batchId = batchResp.Data.BatchId
+		updatedBatchId = batchResp.Data.BatchId
 	}
 	// Add new batch id to configs
-	if batchId != "" && !disableBatch && !strings.Contains(cfgs, "ze_batch_id") {
-		metadata.Cfgs["ze_batch_id"] = batchId
+	if len(updatedBatchId) != 0 && !disableBatch && !strings.Contains(cfgs, "ze_batch_id") {
+		metadata.Cfgs["ze_batch_id"] = updatedBatchId
 	}
-	return metadata, existingBatch, nil
+	return metadata, existingBatch, updatedBatchId, nil
 }

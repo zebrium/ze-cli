@@ -1,4 +1,4 @@
-// Package cmd Copyright © 2023 ScienceLogic Inc/*
+// Package cmd Copyright © 2023 ScienceLogic Inc 
 package cmd
 
 import (
@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/viper"
 	"github.com/zebrium/ze-cli/common"
 	"github.com/zebrium/ze-cli/up"
-	"log"
 	"os"
 )
 
@@ -15,31 +14,29 @@ import (
 var upCmd = &cobra.Command{
 	Use:   "up",
 	Short: "Upload a file to Zebrium",
-	Long:  `Uploads a file or tar file to Zebrium for analysis`,
-	Run: func(cmd *cobra.Command, args []string) {
+	Long:  `Uploads a file to Zebrium for analysis`,
+	RunE: func(cmd *cobra.Command, args []string) error {
 		err := common.ValidateAuthToken(viper.GetString("auth"))
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 		err = common.ValidateZapiUrl(viper.GetString("url"))
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 		err = common.ValidateUpMetadata(viper.GetString("file"), viper.GetString("logtype"), viper.GetBool("logstash"),
 			viper.GetString("batchId"), viper.GetString("cfgs"))
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 		err = up.UploadFile(viper.GetString("url"), viper.GetString("auth"), viper.GetString("file"), viper.GetString("logtype"), viper.GetString("host"), viper.GetString("svcgrp"),
 			viper.GetString("dtz"), viper.GetString("ids"), viper.GetString("cfgs"), viper.GetString("tags"),
 			viper.GetString("batchId"), viper.GetBool("nobatch"), viper.GetBool("logstash"), version)
 		if err != nil {
-			log.Fatal(err.Error())
+			return err
 		}
-		println("Upload Completed successfully")
+		fmt.Fprintln(cmd.OutOrStdout(),"Upload Completed successfully")
+		return nil
 	},
 }
 

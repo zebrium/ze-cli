@@ -1,4 +1,4 @@
-// Package cmd Copyright © 2023 ScienceLogic Inc/*
+// Package cmd Copyright © 2023 ScienceLogic Inc
 package cmd
 
 import (
@@ -46,7 +46,7 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-	if cfgFile != "" {
+	if len(cfgFile) != 0 {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
 	} else {
@@ -57,7 +57,7 @@ func initConfig() {
 		// Search config in home directory with name ".ze" (without extension).
 		viper.AddConfigPath(home)
 		viper.SetConfigType("yaml")
-		viper.SetConfigName(".ze")
+		viper.SetConfigName(".zerc")
 	}
 	viper.SetEnvPrefix("ze")
 	viper.AutomaticEnv() // read in environment variables that match

@@ -3,19 +3,48 @@ package common
 import "testing"
 
 func TestValidateBatchId(t *testing.T) {
-	goodBatch := "BJADAa123421-_"
-	badBatch := "ajhfhadsh&@3"
-	err := ValidateBatchId(goodBatch)
-	if err != nil {
-		t.Fatalf("Batch ID: %s failed Validation, when it was valid", goodBatch)
+	testCases := []struct {
+		batch string
+		valid bool
+	}{
+		{
+			batch: "BJADAa123421-_",
+			valid: true,
+		},
+		{
+			batch: "ajhfhadsh&@3",
+			valid: false,
+		},
+		{
+			batch: "-ajhfhadsh&@3",
+			valid: false,
+		},
+		{
+			batch: "_ajhfhadsh&@3",
+			valid: false,
+		},
+		{
+			batch: "asdadfaewfdasfasgaresfasdaewfadsfaewgasfdaewr",
+			valid: false,
+		},
+		{
+			batch: "",
+			valid: false,
+		},
 	}
-	err = ValidateBatchId(badBatch)
-	if err == nil {
-		t.Fatalf("Invalid Batch ID: %s was validated successfully even though it shouldnt of been", badBatch)
-	}
-	err = ValidateBatchId("")
-	if err == nil {
-		t.Fatalf("Invalid Batch ID: \"\" was validated successfully even though it shouldnt of been")
+
+	for _, tc:= range testCases{
+		err := ValidateBatchId(tc.batch)
+		if err != nil {
+			if tc.valid == true {
+				t.Fatalf("Batch Id: %s was marked invalid but should of been valid", tc.batch)
+
+			} 
+		} else {
+			if tc.valid == false {
+				t.Fatalf("Batch Id: %s was marked Valid but should of been invalid", tc.batch)
+			}
+		}
 	}
 }
 
@@ -83,7 +112,7 @@ func TestValidateZapiUrl(t *testing.T) {
 }
 
 func TestValidateUpMetaData(t *testing.T) {
-	//Validate Log type for streaming
+	// Validate Log type for streaming
 	err := ValidateUpMetadata("", "", false, "", "")
 	if err == nil {
 		t.Fatal("Logtype and filename cannot be empty while logstash is flase")

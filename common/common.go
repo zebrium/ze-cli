@@ -1,4 +1,4 @@
-// Package common Copyright © 2023 ScienceLogic Inc/*
+// Package common Copyright © 2023 ScienceLogic Inc
 package common
 
 import (
@@ -9,6 +9,7 @@ import (
 	"strings"
 )
 
+// ValidateAuthToken validates that the auth token is correct
 func ValidateAuthToken(auth string) error {
 	if len(auth) == 0 {
 		return errors.New("auth token must be set using the --auth flag")
@@ -19,7 +20,7 @@ func ValidateAuthToken(auth string) error {
 	return nil
 }
 
-// TODO: Impleament
+// ValidateZapiUrl validates Zapi Url
 func ValidateZapiUrl(url string) error {
 	if len(url) == 0 {
 		return errors.New("url must be set using the --url flag")
@@ -30,6 +31,7 @@ func ValidateZapiUrl(url string) error {
 	return nil
 }
 
+// ValidateAPIToken validates api token
 func ValidateAPIToken(api string) error {
 	if len(api) == 0 {
 		return errors.New("API must be set using the --api flag")
@@ -47,29 +49,35 @@ func ValidateAPIToken(api string) error {
 	return nil
 }
 
+// ValidateUpMetadata validate the business logic around metadata
 func ValidateUpMetadata(filename string, logype string, logstash bool, batchId string, cfgs string) error {
-	//Make sure log type is specified
+	// Make sure log type is specified
 	if len(filename) == 0 {
-		if logype == "" && !logstash {
+		if len(logype) == 0 && !logstash {
 			return errors.New("error: logtype must be specified for streaming with --logtype")
 		}
 	}
 
-	if strings.Contains(cfgs, "ze_batch_id") && batchId != "" {
+	if strings.Contains(cfgs, "ze_batch_id") && len(batchId) != 0 {
 		return errors.New("ze_batch_id is defined in cfgs put also specified with --batch.  Please correct conflict.")
 	}
 	return nil
 }
+
+// ValidateBatchId Validates batchId
 func ValidateBatchId(batchId string) error {
 	if len(batchId) == 0 {
 		return errors.New("BatchId must be set with -b")
 	}
-	result, err := regexp.Match("^[A-Za-z0-9_-]*$", []byte(batchId))
+	result, err := regexp.Match("^[a-zA-Z0-9][a-zA-Z0-9_-]*$", []byte(batchId))
 	if err != nil {
 		return err
 	}
 	if !result {
 		return fmt.Errorf("BatchId %s contains invalid characters.  Must contain alphanumberic characters, '_' and '-'", batchId)
+	}
+	if len(batchId) > 36 {
+		return fmt.Errorf("BatchId: %s excceds the max length of 36 characters", batchId)
 	}
 	return nil
 }

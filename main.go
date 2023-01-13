@@ -1,4 +1,4 @@
-// Package main Copyright © 2023 ScienceLogic Inc/*
+// Package main Copyright © 2023 ScienceLogic Inc
 package main
 
 import (

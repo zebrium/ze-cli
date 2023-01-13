@@ -1,4 +1,4 @@
-// Package cmd Copyright © 2023 ScienceLogic Inc/*
+// Package cmd Copyright © 2023 ScienceLogic Inc
 package cmd
 
 import (
@@ -16,38 +16,33 @@ var cancelCmd = &cobra.Command{
 	Use:   "cancel",
 	Short: "cancel a batch",
 	Long:  `Cancel a batch job and ends all further processing`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		batchId, err := cmd.Flags().GetString("batchId")
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 		err = common.ValidateAuthToken(viper.GetString("auth"))
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 		err = common.ValidateZapiUrl(viper.GetString("url"))
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 		err = common.ValidateBatchId(batchId)
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 		resp, err := batch.Cancel(viper.GetString("url"), viper.GetString("auth"), batchId)
 		if err != nil {
-			fmt.Println(err.Error())
-			os.Exit(1)
+			return err
 		}
 		if resp.Data == nil {
-			fmt.Printf("Error: An error was returned by the server.\nError Code: %d\nError Message: %s\nRequest Status: %s\n", resp.Code, resp.Message, resp.Status)
-			os.Exit(1)
+			return err
 		} else {
-			fmt.Printf("State for batch upload %s is now %s\n", resp.Data.BatchID, resp.Data.State)
+			fmt.Fprintf(cmd.OutOrStdout(),"State for batch upload %s is now %s\n", resp.Data.BatchID, resp.Data.State)
 		}
+		return nil
 	},
 }
 

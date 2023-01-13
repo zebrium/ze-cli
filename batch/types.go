@@ -1,4 +1,4 @@
-// Package batch Copyright © 2023 ScienceLogic Inc/*
+// Package batch Copyright © 2023 ScienceLogic Inc
 
 package batch
 

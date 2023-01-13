@@ -1,4 +1,4 @@
-// Package batch Copyright © 2023 ScienceLogic Inc/*
+// Package batch Copyright © 2023 ScienceLogic Inc
 
 package batch
 
@@ -13,6 +13,7 @@ import (
 
 var batchURL = "/log/api/v2/batch"
 
+// End Ends a batchId so that it can be updated to begin processing
 func End(url string, auth string, batchId string) (response *EndBatchResp, err error) {
 	client := &http.Client{}
 	var jsonStr = []byte(`{"uploads_complete": true}`)
@@ -38,6 +39,7 @@ func End(url string, auth string, batchId string) (response *EndBatchResp, err e
 	return respMap, nil
 }
 
+// Begin Begins a batchId
 func Begin(url string, auth string, batchId string) (response *BeginBatchResp, err error) {
 	client := &http.Client{}
 	beginBatch := beginBatch{ProcessingMethod: "opportunistic", RetentionHours: 48, BatchId: batchId}
@@ -64,6 +66,8 @@ func Begin(url string, auth string, batchId string) (response *BeginBatchResp, e
 	return respMap, nil
 
 }
+
+// Show Gets the current status of a batch ID
 func Show(url string, auth string, batchId string) (response *ShowBatchResp, err error) {
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/%s/%s", url, batchURL, batchId), nil)
@@ -87,6 +91,8 @@ func Show(url string, auth string, batchId string) (response *ShowBatchResp, err
 	}
 	return respMap, nil
 }
+
+// Cancel Cancels a batch Id
 func Cancel(url string, auth string, batchId string) (response *CancelBatchResp, err error) {
 	client := &http.Client{}
 	var jsonStr = []byte(`{"cancel": true}`)
@@ -112,6 +118,7 @@ func Cancel(url string, auth string, batchId string) (response *CancelBatchResp,
 	return respMap, nil
 }
 
+// String Overrides the toString func for showBatchData to pretty print data for user consumption
 func (d showBatchData) String() (string, error) {
 	fmtUploadTime, err := formatTime(d.UploadTimeSecs)
 	if err != nil {
@@ -140,6 +147,7 @@ func (d showBatchData) String() (string, error) {
 		d.Created, d.CompletionTime, d.ExpirationTime, d.RetentionHours, d.Lines, d.Bundles, d.BundlesCompleted, fmtUploadTime, fmtProcessingTime), nil
 }
 
+// formatTime Formats time objects into a duration for pretty printing
 func formatTime(duration int) (string, error) {
 	seconds, err := time.ParseDuration(fmt.Sprintf("%ds", duration))
 	if err != nil {
