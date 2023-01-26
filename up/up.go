@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -18,24 +19,23 @@ var tokenPath = "log/api/v2/token"
 var logstashPath = "log/api/v2/ingest?log_source=logstash&log_format=json_batch"
 var postPath = "log/api/v2/post"
 
-// UploadFile Main processing function for uploading a file to Zebrium's backend. 
+// UploadFile Main processing function for uploading a file to Zebrium's backend.
 func UploadFile(url string, auth string, file string, logtype string, host string, svcgrp string,
 	dtz string, ids string, cfgs string, tags string, batchId string, disableBatch bool, logstash bool,
 	version string) (err error) {
-	
+
 	defer func() {
 		if err != nil {
 			cleanUpBatchOnExit(batchId)
 		}
 	}()
-	
+
 	route := postPath
 	tr := &http.Transport{
-		MaxIdleConns: 10,
+		MaxIdleConns:    10,
 		WriteBufferSize: 32768,
-		}
+	}
 	client := &http.Client{Transport: tr}
-	//TODO Generated batch Id is lost and never closed - Testing Gap
 	metadata, existingBatch, updatedBatchId, err := generateMetadata(url, auth, file, logtype, host, svcgrp, dtz, ids, cfgs, tags, batchId, disableBatch, version)
 	if err != nil {
 		return err
@@ -94,7 +94,7 @@ func UploadFile(url string, auth string, file string, logtype string, host strin
 	return nil
 }
 
-// sendRequestBuilder Builds the request for sending log files.  
+// sendRequestBuilder Builds the request for sending log files.
 // Will switch between Readers based on if a file is present or if Stdin is the intended target
 func sendRequestBuilder(url string, route string, filename string) (*http.Request, error) {
 	if len(filename) != 0 {
@@ -119,6 +119,7 @@ func sendRequestBuilder(url string, route string, filename string) (*http.Reques
 
 	}
 }
+
 // createMap Helper function for creating mapping passed in metadata in a key=value csv form to a string map
 func createMap(in string) (result map[string]string) {
 	m := make(map[string]string)
@@ -143,6 +144,16 @@ func cleanUpBatchOnExit(batchId string) {
 	}
 }
 
+// parseBatchIdFromConfigs Helper function that will retrieve a batchId from a config map
+func parseBatchIdFromConfigs(cfgs string) (batchId string) {
+	cfgMap := createMap(cfgs)
+	val, ok := cfgMap["ze_batch_id"]
+	if ok {
+		return val
+	}
+	return ""
+}
+
 // generateMetadata Helper function that generates the metadata struct that is needed to request a stream token
 func generateMetadata(url string, auth string, file string, logtype string, host string, svcgrp string,
 	dtz string, ids string, cfgs string, tags string, batchId string, disableBatch bool,
@@ -157,12 +168,19 @@ func generateMetadata(url string, auth string, file string, logtype string, host
 
 	if len(file) != 0 {
 		metadata.Stream = "zefile"
-		//TODO: This is broken with relative paths.  need to parse file to use just filename 
-		if len(logtype) != 0 {
-			metadata.LogBaseName = strings.ToLower(strings.Split(strings.TrimSpace(file), ".")[0])
+		if len(logtype) == 0 {
+			fileName := filepath.Base(file)
+			metadata.LogBaseName = strings.ToLower(strings.Split(strings.TrimSpace(fileName), ".")[0])
 		}
 	} else {
 		disableBatch = true
+	}
+
+	if len(cfgs) != 0 {
+		cfgBatchId := parseBatchIdFromConfigs(cfgs)
+		if len(cfgBatchId) != 0 {
+			updatedBatchId = cfgBatchId
+		}
 	}
 	metadata.Tz = dtz
 	metadata.Ids = createMap(ids)

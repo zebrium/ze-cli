@@ -1,4 +1,4 @@
-// Package cmd Copyright © 2023 ScienceLogic Inc 
+// Package cmd Copyright © 2023 ScienceLogic Inc
 package cmd
 
 import (
@@ -24,18 +24,21 @@ var upCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		err = common.ValidateUpMetadata(viper.GetString("file"), viper.GetString("logtype"), viper.GetBool("logstash"),
+		err = common.ValidateUpMetadata(viper.GetString("file"), viper.GetString("log"), viper.GetBool("logstash"),
 			viper.GetString("batchId"), viper.GetString("cfgs"))
 		if err != nil {
 			return err
 		}
-		err = up.UploadFile(viper.GetString("url"), viper.GetString("auth"), viper.GetString("file"), viper.GetString("logtype"), viper.GetString("host"), viper.GetString("svcgrp"),
+		err = up.UploadFile(viper.GetString("url"), viper.GetString("auth"), viper.GetString("file"), viper.GetString("log"), viper.GetString("host"), viper.GetString("svcgrp"),
 			viper.GetString("dtz"), viper.GetString("ids"), viper.GetString("cfgs"), viper.GetString("tags"),
 			viper.GetString("batchId"), viper.GetBool("nobatch"), viper.GetBool("logstash"), version)
 		if err != nil {
 			return err
 		}
-		fmt.Fprintln(cmd.OutOrStdout(),"Upload Completed successfully")
+		_, err = fmt.Fprintln(cmd.OutOrStdout(), "Upload Completed successfully")
+		if err != nil {
+			return err
+		}
 		return nil
 	},
 }
@@ -43,7 +46,7 @@ var upCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(upCmd)
 	upCmd.Flags().StringP("file", "f", "", "File path to upload")
-	upCmd.Flags().StringP("logtype", "l", "", "Logtype of file being uploaded.  Set to 'stream' if using STDIN.  Defaults to base name from file")
+	upCmd.Flags().StringP("log", "l", "", "Logtype of file being uploaded.  Set to 'stream' if using STDIN.  Defaults to base name from file")
 	upCmd.Flags().String("host", "", "Hostname or other identifier representing the source of the file being uploaded")
 	upCmd.Flags().String("svcgrp", "default", "Defines a failure domain boundary for anomaly correlation. Learn more: https://docs.zebrium.com/docs/concepts/service-group")
 	upCmd.Flags().String("dtz", "", "Time zone of the Logs")

@@ -19,12 +19,20 @@ submodule commands to reflect the following structure
 The common folder stores all common code for input sanitation and validation.
 Functions in here can return a os.exit and interact with the std out and std err.
 All other packages should return an object and an error and all system exits 
-and std prompts should be handled in the cmd or common package.
+and std prompts should be handled in the cmd package.
 
 ## Viper Integration
+This project leverages [Viper](https://github.com/spf13/viper) in order to support 
+configuration injection either through a configuration file or through ENV variables. 
+Viper configuration can be found [here](cmd/root.go)
 
 
+## Building artifacts 
+This project leverages github actions to build adn release the project based on github releases.  
+To enable this, we use [goreleaser](https://github.com/goreleaser/goreleaser)
 
+### Building Locally
+Currently, this project does not use any special features of Go build. Artifacts for the current OS can be created using `go build` and if other OS or architectures are needed, you must export `GOOS` and `GOARCH` to the appropriate OS and CPU architecture.
 
-## Building and releasing 
-https://github.com/goreleaser/goreleaser
+## Testing 
+Ze has a suite of unit testing for internal modules to ensure business logic is accurate. You can run the full battery of tests with `go test ./...` at the root of the module.

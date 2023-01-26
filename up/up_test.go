@@ -8,17 +8,28 @@ var url = "https://test.local"
 var auth = "xxxxxxxxxxxxxxxxxxxxxxx"
 
 func TestCreateMap(t *testing.T) {
-	t.Log("Testing 3 Values")
-	set1 := "key1=value1,key2=value2,key3=value3"
-	actual := createMap(set1)
-	if len(actual) != 3 {
-		t.Fatalf("Incorrect number of objects created in map.  Expected: %d, Got: %d", 3, len(actual))
+	testCases := []struct {
+		set string
+		len int
+	}{
+		{
+			set: "",
+			len: 0,
+		},
+		{
+			set: "key1=value1",
+			len: 1,
+		},
+		{
+			set: "key1=value1,key2=value2,key3=value3",
+			len: 3,
+		},
 	}
-	t.Log("Testing 0 values for array")
-	set2 := ""
-	actual = createMap(set2)
-	if len(actual) != 0 {
-		t.Fatalf("Incorrect number of objects created in map.  Expected: %d, Got: %d", 0, len(actual))
+	for _, tc := range testCases {
+		actual := createMap(tc.set)
+		if len(actual) != tc.len {
+			t.Fatalf("Incorrect number of objects created in map.  Expected: %d, Got: %d", tc.len, len(actual))
+		}
 	}
 }
 
@@ -42,7 +53,8 @@ func TestMetadataBatchPassed(t *testing.T) {
 }
 func TestMetadataBatchConfig(t *testing.T) {
 	batch := "test123456"
-	metadata, existingBatch, updatedBatch,  err := generateMetadata(url, auth, "test.log", "", "", "", "", "", "ze_batch_id="+batch, "", "", false, "test")
+	metadata, existingBatch, updatedBatch, err := generateMetadata(url, auth, "test.log", "", "",
+		"", "", "", "ze_batch_id="+batch, "", "", false, "test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,8 +72,8 @@ func TestMetadataBatchConfig(t *testing.T) {
 func TestMetadataFileWithNoLogType(t *testing.T) {
 	batch := "test123456"
 	filename := "test_one-1234.log"
-	t.Log("Test with .log")
-	metadata, existingBatch, updatedBatch, err := generateMetadata(url, auth, filename, "", "", "", "", "", "", "", batch, false, "test")
+	metadata, existingBatch, updatedBatch, err := generateMetadata(url, auth, filename, "", "", "",
+		"", "", "", "", batch, false, "test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,8 +86,8 @@ func TestMetadataFileWithNoLogType(t *testing.T) {
 	if batch != updatedBatch {
 		t.Fatalf("Expected: %s Actual: %s", batch, updatedBatch)
 	}
-	t.Log("Test with no .")
-	metadata, existingBatch,updatedBatch, err = generateMetadata(url, auth, "test_one-1234", "", "", "", "", "", "", "", batch, false, "test")
+	metadata, existingBatch, updatedBatch, err = generateMetadata(url, auth, "test_one-1234", "", "",
+		"", "", "", "", "", batch, false, "test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,7 +105,8 @@ func TestMetadataFileWithNoLogType(t *testing.T) {
 
 func TestMetadataStreaming(t *testing.T) {
 	logtype := "peanutbutter"
-	metadata, existingBatch, updatedBatch, err := generateMetadata(url, auth, "", logtype, "", "", "", "", "", "", "", false, "test")
+	metadata, existingBatch, updatedBatch, err := generateMetadata(url, auth, "", logtype, "", "",
+		"", "", "", "", "", false, "test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,7 +133,8 @@ func TestMetadataGeneral(t *testing.T) {
 	host := "countlogula"
 	svcgrp := "jelly"
 	tz := "EST"
-	metadata, existingBatch, updatedBatch, err := generateMetadata(url, auth, "", logtype, host, svcgrp, tz, "", "", "", "123", false, "test")
+	metadata, existingBatch, updatedBatch, err := generateMetadata(url, auth, "", logtype, host, svcgrp, tz,
+		"", "", "", "123", false, "test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,6 +162,77 @@ func TestMetadataGeneral(t *testing.T) {
 	}
 }
 
-func TestRequestBuilder(t *testing.T) {
+func TestMetadataFilename(t *testing.T) {
+	testCases := []struct {
+		filename    string
+		expectedLBN string
+	}{
+		{
+			filename:    "test_one-1234.log",
+			expectedLBN: "test_one-1234",
+		},
+		{
+			filename:    "../../test_one-1234.log",
+			expectedLBN: "test_one-1234",
+		},
+		{
+			filename:    "/this/is/a/test/test_one-1234.log",
+			expectedLBN: "test_one-1234",
+		},
+		{
+			filename:    "test_one.1.log",
+			expectedLBN: "test_one",
+		},
+		{
+			filename:    "test_one",
+			expectedLBN: "test_one",
+		},
+		{
+			filename:    "../../test_one",
+			expectedLBN: "test_one",
+		},
+		{
+			filename:    "/this/is/a/test/test_one",
+			expectedLBN: "test_one",
+		},
+	}
+	for _, tc := range testCases {
+		metadata, _, _, err := generateMetadata(url, auth, tc.filename, "", "", "", "", "", "", "", "test", false, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if metadata.LogBaseName != tc.expectedLBN {
+			t.Fatalf("Expected: %s, Actual: %s", tc.expectedLBN, metadata.LogBaseName)
+		}
+	}
+}
 
+func TestParseBatchIdFromConfig(t *testing.T) {
+	testCases := []struct {
+		cfgs    string
+		batchId string
+	}{
+		{
+			cfgs:    "",
+			batchId: "",
+		},
+		{
+			cfgs:    "key1=value,key2=value",
+			batchId: "",
+		},
+		{
+			cfgs:    "key1=value,key2=value,ze_batch_id=test123",
+			batchId: "test123",
+		},
+		{
+			cfgs:    "ze_batch_id=test123",
+			batchId: "test123",
+		},
+	}
+	for _, tc := range testCases {
+		batchId := parseBatchIdFromConfigs(tc.cfgs)
+		if batchId != tc.batchId {
+			t.Fatalf("Expected: %s, Actual: %s", tc.batchId, batchId)
+		}
+	}
 }
