@@ -12,7 +12,8 @@
 ## Configuration
 The ze cli tool supports a variety of ways to set its parameters.  All parameters are 
 settable via args.  To find out the args available and required for each call, use `ze -help` 
-or `ze <subcommand> -help`
+or `ze <subcommand> -help`  When leveraging the configuration file or ENV variables, ze cli will use the following 
+precedence: Config File -> Env Files -> Command Line Args
 
 ### Configuration File
  The ze cli tool does support setting global variables in a .ze.yaml file for easy 
@@ -37,7 +38,7 @@ Use `ze -help` for a complete list of command options
 
 
 ## Migrating from the pearl based ze-cli
-The existing pearl based application can be found [here](/bin)
+The existing perl based application can be found [here](/bin)
 ### .zerc file
  The .zerc file is now replaced with a .ze file that accepts the configuration
  in yaml.  This is described [here](#configuration-file)  This means that configs that was specified as
