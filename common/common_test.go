@@ -33,16 +33,16 @@ func TestValidateBatchId(t *testing.T) {
 		},
 	}
 
-	for _, tc := range testCases {
+	for i, tc := range testCases {
 		err := ValidateBatchId(tc.batch)
 		if err != nil {
 			if tc.valid == true {
-				t.Fatalf("Batch Id: %s was marked invalid but should of been valid", tc.batch)
+				t.Fatalf("Subtest: %d failed. Batch Id: %s was marked invalid but should of been valid", i, tc.batch)
 
 			}
 		} else {
 			if tc.valid == false {
-				t.Fatalf("Batch Id: %s was marked Valid but should of been invalid", tc.batch)
+				t.Fatalf("Subtest: %d failed. Batch Id: %s was marked Valid but should of been invalid", i, tc.batch)
 			}
 		}
 	}
@@ -70,16 +70,16 @@ func TestValidateAPIToken(t *testing.T) {
 			valid: false,
 		},
 	}
-	for _, tc := range testCases {
+	for i, tc := range testCases {
 		err := ValidateAPIToken(tc.token)
 		if err != nil {
 			if tc.valid == true {
-				t.Fatalf("Token: %s was marked invalid but should of been valid", tc.token)
+				t.Fatalf("Subtest: %d failed. Token: %s was marked invalid but should of been valid", i, tc.token)
 
 			}
 		} else {
 			if tc.valid == false {
-				t.Fatalf("Token: %s was marked Valid but should of been invalid", tc.token)
+				t.Fatalf("Subtest: %d failed. Token: %s was marked Valid but should of been invalid", i, tc.token)
 			}
 		}
 	}
@@ -107,16 +107,16 @@ func TestValidateAuthToken(t *testing.T) {
 			valid: false,
 		},
 	}
-	for _, tc := range testCases {
+	for i, tc := range testCases {
 		err := ValidateAuthToken(tc.token)
 		if err != nil {
 			if tc.valid == true {
-				t.Fatalf("Token: %s was marked invalid but should of been valid", tc.token)
+				t.Fatalf("Subtest: %d failed. Token: %s was marked invalid but should of been valid", i, tc.token)
 
 			}
 		} else {
 			if tc.valid == false {
-				t.Fatalf("Token: %s was marked Valid but should of been invalid", tc.token)
+				t.Fatalf("Subtest: %d failed. Token: %s was marked Valid but should of been invalid", i, tc.token)
 			}
 		}
 	}
@@ -144,16 +144,16 @@ func TestValidateZapiUrl(t *testing.T) {
 			valid: false,
 		},
 	}
-	for _, tc := range testCases {
+	for i, tc := range testCases {
 		err := ValidateZapiUrl(tc.url)
 		if err != nil {
 			if tc.valid == true {
-				t.Fatalf("URL: %s was marked invalid but should of been valid", tc.url)
+				t.Fatalf("Subtest: %d failed. URL: %s was marked invalid but should of been valid", i, tc.url)
 
 			}
 		} else {
 			if tc.valid == false {
-				t.Fatalf("URL: %s was marked Valid but should of been invalid", tc.url)
+				t.Fatalf("Subtest: %d failed. URL: %s was marked Valid but should of been invalid", i, tc.url)
 			}
 		}
 	}
@@ -224,16 +224,16 @@ func TestValidateUpMetaData(t *testing.T) {
 			reason:   "batch id cannot be set if cfgs includes ze_batch_id",
 		},
 	}
-	for _, tc := range testCases {
+	for i, tc := range testCases {
 		err := ValidateUpMetadata(tc.filename, tc.logtype, tc.logstash, tc.batchid, tc.cfgs)
 		if err != nil {
 			if tc.valid == true {
-				t.Fatal(tc)
+				t.Fatalf("Subtest %d failed: %v", i, tc)
 
 			}
 		} else {
 			if tc.valid == false {
-				t.Fatal(tc)
+				t.Fatalf("Subtest %d failed: %v", i, tc)
 			}
 		}
 	}

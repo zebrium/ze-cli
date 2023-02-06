@@ -25,10 +25,10 @@ func TestCreateMap(t *testing.T) {
 			len: 3,
 		},
 	}
-	for _, tc := range testCases {
+	for i, tc := range testCases {
 		actual := createMap(tc.set)
 		if len(actual) != tc.len {
-			t.Fatalf("Incorrect number of objects created in map.  Expected: %d, Got: %d", tc.len, len(actual))
+			t.Fatalf("Subtest: %d failed. Incorrect number of objects created in map.  Expected: %d, Got: %d", i, tc.len, len(actual))
 		}
 	}
 }
@@ -196,13 +196,13 @@ func TestMetadataFilename(t *testing.T) {
 			expectedLBN: "test_one",
 		},
 	}
-	for _, tc := range testCases {
+	for i, tc := range testCases {
 		metadata, _, _, err := generateMetadata(url, auth, tc.filename, "", "", "", "", "", "", "", "test", false, "")
 		if err != nil {
 			t.Fatal(err)
 		}
 		if metadata.LogBaseName != tc.expectedLBN {
-			t.Fatalf("Expected: %s, Actual: %s", tc.expectedLBN, metadata.LogBaseName)
+			t.Fatalf("Subtest: %d failed. Expected: %s, Actual: %s", i, tc.expectedLBN, metadata.LogBaseName)
 		}
 	}
 }
@@ -229,10 +229,10 @@ func TestParseBatchIdFromConfig(t *testing.T) {
 			batchId: "test123",
 		},
 	}
-	for _, tc := range testCases {
+	for i, tc := range testCases {
 		batchId := parseBatchIdFromConfigs(tc.cfgs)
 		if batchId != tc.batchId {
-			t.Fatalf("Expected: %s, Actual: %s", tc.batchId, batchId)
+			t.Fatalf("Subtest: %d failed. Expected: %s, Actual: %s", i, tc.batchId, batchId)
 		}
 	}
 }
