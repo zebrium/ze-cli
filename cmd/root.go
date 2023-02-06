@@ -57,7 +57,7 @@ func initConfig() {
 		// Search config in home directory with name ".ze" (without extension).
 		viper.AddConfigPath(home)
 		viper.SetConfigType("yaml")
-		viper.SetConfigName(".zerc")
+		viper.SetConfigName(".ze")
 	}
 	viper.SetEnvPrefix("ze")
 	viper.AutomaticEnv() // read in environment variables that match
