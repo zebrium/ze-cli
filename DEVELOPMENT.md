@@ -32,7 +32,11 @@ This project leverages github actions to build adn release the project based on 
 To enable this, we use [goreleaser](https://github.com/goreleaser/goreleaser)
 
 ### Building Locally
-Currently, this project does not use any special features of Go build. Artifacts for the current OS can be created using `go build` and if other OS or architectures are needed, you must export `GOOS` and `GOARCH` to the appropriate OS and CPU architecture.
+To cross compile a binary locally, you can run make build.  This will leverage goreleaser to crosscompile the binary in all supported architectures
 
 ## Testing 
-Ze has a suite of unit testing for internal modules to ensure business logic is accurate. You can run the full battery of tests with `go test ./...` at the root of the module.
+Ze has a suite of unit testing for internal modules to ensure business logic is accurate. You can run the full battery of tests with `make gotest` at the root of the module.
+
+## Committing Changes
+Before committing changes to ze-cli and opening a Pull Request, please run `make all` to ensure all checks are met in order
+to make your PR pass the required checks. 

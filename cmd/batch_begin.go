@@ -37,11 +37,7 @@ var beginCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		if resp.Data == nil || len(resp.Data.BatchId) == 0 {
-			return err
-		} else {
-			fmt.Fprintf(cmd.OutOrStdout(),"Batch Id: %s Successfully created.\n", resp.Data.BatchId)
-		}
+		fmt.Fprintf(cmd.OutOrStdout(), "Batch Id: %s Successfully created.\n", resp.Data.BatchId)
 		return nil
 	},
 }

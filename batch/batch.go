@@ -36,6 +36,9 @@ func End(url string, auth string, batchId string) (response *EndBatchResp, err e
 	if err != nil {
 		return nil, err
 	}
+	if respMap.Code != 200 {
+		return nil, fmt.Errorf("batch end failed with error code: %d. error message: %s", respMap.Code, respMap.Message)
+	}
 	return respMap, nil
 }
 
@@ -63,6 +66,9 @@ func Begin(url string, auth string, batchId string) (response *BeginBatchResp, e
 	if err != nil {
 		return nil, err
 	}
+	if respMap.Code != 200 || respMap.Data == nil || len(respMap.Data.BatchId) == 0 {
+		return nil, fmt.Errorf("batch begin failed with error code: %d, error message: %s, error status: %s", respMap.Code, respMap.Message, respMap.Status)
+	}
 	return respMap, nil
 
 }
@@ -89,6 +95,9 @@ func Show(url string, auth string, batchId string) (response *ShowBatchResp, err
 	if err != nil {
 		return nil, err
 	}
+	if respMap.Code != 200 {
+		return nil, fmt.Errorf("batch show failed with error code: %d. error message: %s", respMap.Code, respMap.Message)
+	}
 	return respMap, nil
 }
 
@@ -114,6 +123,9 @@ func Cancel(url string, auth string, batchId string) (response *CancelBatchResp,
 	err = json.Unmarshal(respBody, &respMap)
 	if err != nil {
 		return nil, err
+	}
+	if respMap.Code != 200 {
+		return nil, fmt.Errorf("batch cancel failed with error code: %d. error message: %s", respMap.Code, respMap.Message)
 	}
 	return respMap, nil
 }

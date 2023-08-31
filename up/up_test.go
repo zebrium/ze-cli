@@ -86,7 +86,7 @@ func TestMetadataFileWithNoLogType(t *testing.T) {
 	if batch != updatedBatch {
 		t.Fatalf("Expected: %s Actual: %s", batch, updatedBatch)
 	}
-	metadata, existingBatch, updatedBatch, err = generateMetadata(url, auth, "test_one-1234", "", "",
+	metadata, existingBatch, _, err = generateMetadata(url, auth, "test_one-1234", "", "",
 		"", "", "", "", "", batch, false, "test")
 	if err != nil {
 		t.Fatal(err)
