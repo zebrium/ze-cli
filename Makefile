@@ -53,7 +53,7 @@ govulncheck: $(GOVULNCHECK)
 	$(GOVULNCHECK) ./...
 
 .PHONY: gomoddownload
-moddownload:
+gomoddownload:
 	$(GOCMD) mod download
 
 .PHONY: build
