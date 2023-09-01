@@ -54,8 +54,8 @@ govulncheck: $(GOVULNCHECK)
 
 .PHONY: gomoddownload
 gomoddownload:
-	$(GOCMD) mod download
-
+	$(GOCMD) mod download -x
+	cd $(TOOLS_MOD_DIR) && $(GOCMD) mod download -x
 .PHONY: build
 build:
 	$(GORELEASER) build  --clean --skip-validate
