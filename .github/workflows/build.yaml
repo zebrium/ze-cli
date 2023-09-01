@@ -27,11 +27,16 @@ jobs:
             ~/go/bin
             ~/go/pkg/mod
           key: go-cache-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+      - name: Cache Build Tools
+        id: go-tools-cache
+        uses: actions/cache@v3
+        with:
+          key: go-tools-cache-${{ runner.os }}-${{ hashFiles('internal/tools/go.sum') }}
+          path: .tools
       - name: Install dependencies
-        if: steps.go-cache.outputs.cache-hit != 'true'
         run: make -j2 gomoddownload
       - name: Install Tools
-        if: steps.go-cache.outputs.cache-hit != 'true'
+        if: steps.go-tools-cache.outputs.cache-hit != 'true'
         run: make install-tools
   lint:
     runs-on: ubuntu-latest
@@ -51,11 +56,17 @@ jobs:
             ~/go/bin
             ~/go/pkg/mod
           key: go-cache-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+      - name: Cache Build Tools
+        id: go-tools-cache
+        uses: actions/cache@v3
+        with:
+          key: go-tools-cache-${{ runner.os }}-${{ hashFiles('internal/tools/go.sum') }}
+          path: .tools
       - name: Install dependencies
         if: steps.go-cache.outputs.cache-hit != 'true'
         run: make -j2 gomoddownload
       - name: Install Tools
-        if: steps.go-cache.outputs.cache-hit != 'true'
+        if: steps.go-tools-cache.outputs.cache-hit != 'true'
         run: make install-tools
       - name: Lint
         run: make -j2 golint
@@ -79,8 +90,17 @@ jobs:
             ~/go/bin
             ~/go/pkg/mod
           key: go-cache-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
-      - name: Install Tools
+      - name: Cache Build Tools
+        id: go-tools-cache
+        uses: actions/cache@v3
+        with:
+          key: go-tools-cache-${{ runner.os }}-${{ hashFiles('internal/tools/go.sum') }}
+          path: .tools
+      - name: Install dependencies
         if: steps.go-cache.outputs.cache-hit != 'true'
+        run: make -j2 gomoddownload
+      - name: Install Tools
+        if: steps.go-tools-cache.outputs.cache-hit != 'true'
         run: make install-tools
       - name: Run `govulncheck`
         run: make -j2 govulncheck
@@ -102,11 +122,17 @@ jobs:
             ~/go/bin
             ~/go/pkg/mod
           key: go-cache-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+      - name: Cache Build Tools
+        id: go-tools-cache
+        uses: actions/cache@v3
+        with:
+          key: go-tools-cache-${{ runner.os }}-${{ hashFiles('internal/tools/go.sum') }}
+          path: .tools
       - name: Install dependencies
         if: steps.go-cache.outputs.cache-hit != 'true'
         run: make -j2 gomoddownload
       - name: Install Tools
-        if: steps.go-cache.outputs.cache-hit != 'true'
+        if: steps.go-tools-cache.outputs.cache-hit != 'true'
         run: make install-tools
       - name: Check for go mod dependency changes
         run: |
@@ -130,11 +156,17 @@ jobs:
             ~/go/bin
             ~/go/pkg/mod
           key: go-cache-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+      - name: Cache Build Tools
+        id: go-tools-cache
+        uses: actions/cache@v3
+        with:
+          key: go-tools-cache-${{ runner.os }}-${{ hashFiles('internal/tools/go.sum') }}
+          path: .tools
       - name: Install dependencies
         if: steps.go-cache.outputs.cache-hit != 'true'
         run: make -j2 gomoddownload
       - name: Install Tools
-        if: steps.go-cache.outputs.cache-hit != 'true'
+        if: steps.go-tools-cache.outputs.cache-hit != 'true'
         run: make install-tools
       - name: Run Unit Test
         run: make gotest
@@ -156,11 +188,17 @@ jobs:
             ~/go/bin
             ~/go/pkg/mod
           key: go-cache-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+      - name: Cache Build Tools
+        id: go-tools-cache
+        uses: actions/cache@v3
+        with:
+          key: go-tools-cache-${{ runner.os }}-${{ hashFiles('internal/tools/go.sum') }}
+          path: .tools
       - name: Install dependencies
         if: steps.go-cache.outputs.cache-hit != 'true'
         run: make -j2 gomoddownload
       - name: Install Tools
-        if: steps.go-cache.outputs.cache-hit != 'true'
+        if: steps.go-tools-cache.outputs.cache-hit != 'true'
         run: make install-tools
       - name: Build
         run: make build
