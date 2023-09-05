@@ -1,7 +1,8 @@
 name: build-and-test
 
 on:
-  branches: [ main, upload-segfault ]
+  push:
+    branches: [ main, upload-segfault ]
   pull_request:
 permissions:
   contents: read
