@@ -38,7 +38,7 @@ Use `ze -help` for a complete list of command options
 
 
 ## Migrating from the pearl based ze-cli
-The existing perl based application can be found [here](/bin)
+The existing perl based application can be found [here](/legacy/bin)
 ### .zerc file
  The .zerc file is now replaced with a .ze file that accepts the configuration
  in yaml.  This is described [here](#configuration-file)  This means that configs that was specified as
