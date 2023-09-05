@@ -40,3 +40,7 @@ Ze has a suite of unit testing for internal modules to ensure business logic is 
 ## Committing Changes
 Before committing changes to ze-cli and opening a Pull Request, please run `make all` to ensure all checks are met in order
 to make your PR pass the required checks. 
+
+## Cleanup
+In order to clean your environment after running make commands, you can run `make cleanup`.  
+This will purge any internal directories created from previous make commands. 

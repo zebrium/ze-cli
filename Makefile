@@ -18,7 +18,7 @@ TOOLS_BIN_NAMES  := $(addprefix $(TOOLS_BIN_DIR)/, $(notdir $(TOOLS_PKG_NAMES)))
 DIST_DIR		 := $(SRC_ROOT)/dist
 
 .PHONY: all
-all: install-tools gotidy golint govulncheck gotest
+all: install-tools gotidy golint govulncheck gotest build
 
 .PHONY: install-tools
 install-tools: $(TOOLS_BIN_NAMES)
@@ -58,7 +58,7 @@ gomoddownload:
 	cd $(TOOLS_MOD_DIR) && $(GOCMD) mod download -x
 .PHONY: build
 build:
-	$(GORELEASER) build  --clean --skip-validate
+	$(GORELEASER) build  --clean --skip-validate --snapshot
 .PHONY: cleanup
 cleanup:
 	if [ -d  $(TOOLS_BIN_DIR) ]; then rm -r $(TOOLS_BIN_DIR); fi
