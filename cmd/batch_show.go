@@ -39,7 +39,14 @@ var showCmd = &cobra.Command{
 		if resp.Data == nil {
 			return err
 		} else {
-			fmt.Fprintln(cmd.OutOrStdout(),resp.Data[0])
+			output, err := resp.Data[0].String()
+			if err != nil {
+				return err
+			}
+			_, err = fmt.Fprintln(cmd.OutOrStdout(), output)
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 	},
