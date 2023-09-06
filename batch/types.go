@@ -9,12 +9,12 @@ type beginBatch struct {
 }
 
 type BeginBatchResp struct {
-	Data    *batchBeginDataResp `json:"data"`
+	Data    *BatchBeginDataResp `json:"data"`
 	Message string              `json:"message"`
 	Code    int                 `json:"code"`
 	Status  string              `json:"status"`
 }
-type batchBeginDataResp struct {
+type BatchBeginDataResp struct {
 	BatchId string `json:"batch_id"`
 }
 
@@ -31,13 +31,13 @@ type endBatchData struct {
 }
 
 type ShowBatchResp struct {
-	Data    []showBatchData `json:"data"`
+	Data    []ShowBatchData `json:"data"`
 	Message string          `json:"message"`
 	Code    int             `json:"code"`
 	Status  string          `json:"status"`
 }
 
-type showBatchData struct {
+type ShowBatchData struct {
 	BatchID            string `json:"batch_id"`
 	Account            string `json:"account"`
 	State              string `json:"state"`

@@ -1,11 +1,17 @@
 package up
 
 import (
+	"encoding/json"
+	"fmt"
+	"github.com/zebrium/ze-cli/batch"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 )
 
 var url = "https://test.local"
 var auth = "xxxxxxxxxxxxxxxxxxxxxxx"
+var batchURL = "log/api/v2/batch"
 
 func TestCreateMap(t *testing.T) {
 	testCases := []struct {
@@ -34,46 +40,46 @@ func TestCreateMap(t *testing.T) {
 }
 
 func TestMetadataBatchPassed(t *testing.T) {
-	batch := "test123456"
+	batchId := "test123456"
 	version := "1.0.0"
-	metadata, existingBatch, updatedBatch, err := generateMetadata(url, auth, "test.log", "", "", "", "", "", "", "", batch, false, version)
+	metadata, existingBatch, updatedBatch, err := generateMetadata(url, auth, "test.log", "", "", "", "", "", "", "", batchId, false, version)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if existingBatch != true {
 		t.Fatal("existingBatch was set to false when it should of been true")
 	}
-	if metadata.Cfgs["ze_batch_id"] != batch {
-		t.Fatalf("Batchids did not match what was expected. Expected: %s, Actual %s", batch, metadata.Cfgs["ze_batch_id"])
+	if metadata.Cfgs["ze_batch_id"] != batchId {
+		t.Fatalf("Batchids did not match what was expected. Expected: %s, Actual %s", batchId, metadata.Cfgs["ze_batch_id"])
 	}
-	if batch != updatedBatch {
-		t.Fatalf("Expected: %s Actual: %s", batch, updatedBatch)
+	if batchId != updatedBatch {
+		t.Fatalf("Expected: %s Actual: %s", batchId, updatedBatch)
 	}
 
 }
 func TestMetadataBatchConfig(t *testing.T) {
-	batch := "test123456"
+	batchId := "test123456"
 	metadata, existingBatch, updatedBatch, err := generateMetadata(url, auth, "test.log", "", "",
-		"", "", "", "ze_batch_id="+batch, "", "", false, "test")
+		"", "", "", "ze_batch_id="+batchId, "", "", false, "test")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if existingBatch != true {
 		t.Fatal("existingBatch was set to false when it should of been true")
 	}
-	if metadata.Cfgs["ze_batch_id"] != batch {
-		t.Fatalf("Batchids did not match what was expected. Expected: %s, Actual %s", batch, metadata.Cfgs["ze_batch_id"])
+	if metadata.Cfgs["ze_batch_id"] != batchId {
+		t.Fatalf("Batchids did not match what was expected. Expected: %s, Actual %s", batchId, metadata.Cfgs["ze_batch_id"])
 	}
-	if batch != updatedBatch {
-		t.Fatalf("Expected: %s Actual: %s", batch, updatedBatch)
+	if batchId != updatedBatch {
+		t.Fatalf("Expected: %s Actual: %s", batchId, updatedBatch)
 	}
 }
 
 func TestMetadataFileWithNoLogType(t *testing.T) {
-	batch := "test123456"
+	batchId := "test123456"
 	filename := "test_one-1234.log"
 	metadata, existingBatch, updatedBatch, err := generateMetadata(url, auth, filename, "", "", "",
-		"", "", "", "", batch, false, "test")
+		"", "", "", "", batchId, false, "test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,11 +89,11 @@ func TestMetadataFileWithNoLogType(t *testing.T) {
 	if metadata.LogBaseName != "test_one-1234" {
 		t.Fatalf("LogBaseName incorrectly set.  Expected: %s, Actual: %s", "test_one", metadata.LogBaseName)
 	}
-	if batch != updatedBatch {
-		t.Fatalf("Expected: %s Actual: %s", batch, updatedBatch)
+	if batchId != updatedBatch {
+		t.Fatalf("Expected: %s Actual: %s", batchId, updatedBatch)
 	}
-	metadata, existingBatch, updatedBatch, err = generateMetadata(url, auth, "test_one-1234", "", "",
-		"", "", "", "", "", batch, false, "test")
+	metadata, existingBatch, _, err = generateMetadata(url, auth, "test_one-1234", "", "",
+		"", "", "", "", "", batchId, false, "test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -233,6 +239,88 @@ func TestParseBatchIdFromConfig(t *testing.T) {
 		batchId := parseBatchIdFromConfigs(tc.cfgs)
 		if batchId != tc.batchId {
 			t.Fatalf("Subtest: %d failed. Expected: %s, Actual: %s", i, tc.batchId, batchId)
+		}
+	}
+}
+
+func TestGenerateMetadataBatching(t *testing.T) {
+	testCases := []struct {
+		cfgs          string
+		batchId       string
+		disableBatch  bool
+		batchResponse batch.BeginBatchResp
+		expectedFail  bool
+		existingBatch bool
+	}{
+		{
+			batchResponse: batch.BeginBatchResp{
+				Data:    &batch.BatchBeginDataResp{BatchId: "batch123456"},
+				Message: "",
+				Code:    200,
+				Status:  "200",
+			},
+			disableBatch:  false,
+			cfgs:          "",
+			expectedFail:  false,
+			existingBatch: false,
+		},
+		{
+			batchResponse: batch.BeginBatchResp{
+				Data:    &batch.BatchBeginDataResp{BatchId: "batch123456"},
+				Message: "",
+				Code:    500,
+				Status:  "200",
+			},
+			disableBatch:  false,
+			cfgs:          "",
+			expectedFail:  true,
+			existingBatch: false,
+		},
+	}
+	for i, tc := range testCases {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path != fmt.Sprintf("/%s", batchURL) {
+				t.Errorf("Expected to request %s, got: %s tc: %d", batchURL, r.URL.Path, i)
+			}
+			if r.Header.Get("Content-Type") != "application/json" {
+				t.Errorf("Expected Content-Type: application/json header, got: %s tc: %d", r.Header.Get("Accept"), i)
+			}
+			if r.Header.Get("Authorization") != fmt.Sprintf("Token %s", auth) {
+				t.Errorf("Expected Authorization: %s, got: %s tc: %d", fmt.Sprintf("Token %s", auth), r.Header.Get("Authorization"), i)
+			}
+			byteResponse, _ := json.Marshal(tc.batchResponse)
+			w.WriteHeader(http.StatusOK)
+			_, err := w.Write(byteResponse)
+			if err != nil {
+				t.Fatalf("encountered error when one wasnt expected in tc: %d, Error: %v", i, err)
+			}
+
+		}))
+		metadata, existing, updatedBatch, err := generateMetadata(server.URL, auth, "potato", "", "", "", "", "", tc.cfgs, "", tc.batchId, tc.disableBatch, "")
+
+		if tc.expectedFail {
+			if err == nil {
+				t.Fatalf("failed to encounter error when one was expected in tc: %d, Error: %v", i, err)
+			} else {
+				server.Close()
+				continue
+			}
+		} else {
+			if err != nil {
+				t.Fatalf("encountered error when one wasnt expected in tc: %d, Error: %v", i, err)
+			}
+		}
+		if existing != tc.existingBatch {
+			t.Fatalf("expected: %t, actual: %t, tc: %d", tc.existingBatch, existing, i)
+		}
+		if updatedBatch != tc.batchResponse.Data.BatchId {
+			t.Fatalf("expected: %s, actual: %s, tc: %d", tc.batchResponse.Data.BatchId, updatedBatch, i)
+		}
+		if !tc.existingBatch {
+			if metadata.Cfgs["ze_batch_id"] != tc.batchResponse.Data.BatchId {
+				t.Fatalf("expected: %s, actual: %s, tc: %d", tc.batchResponse.Data.BatchId, metadata.Cfgs["ze_batch_id"], i)
+
+			}
 		}
 	}
 }

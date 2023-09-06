@@ -23,7 +23,7 @@ Display advanced help on ze command usage.
 
 ### Installing
 
-* Download `bin/ze` from the Zebrium GitHub repository here: [https://github.com/zebrium/ze-cli](https://github.com/zebrium/ze-cli)
+* Download `/bin/ze` from the Zebrium GitHub repository here: [https://github.com/zebrium/ze-cli](https://github.com/zebrium/ze-cli/tree/main/legacy)
 * Move `bin/ze` to the appropriate bin directory in your PATH
 * Ensure ze command is executable: `chmod 755 <path_to_ze_command>`
 

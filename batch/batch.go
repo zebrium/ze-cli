@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-var batchURL = "/log/api/v2/batch"
+var batchURL = "log/api/v2/batch"
 
 // End Ends a batchId so that it can be updated to begin processing
 func End(url string, auth string, batchId string) (response *EndBatchResp, err error) {
@@ -27,6 +27,9 @@ func End(url string, auth string, batchId string) (response *EndBatchResp, err e
 	if err != nil {
 		return nil, err
 	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error processing request, http code: %d, http status: %s", resp.StatusCode, resp.Status)
+	}
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
@@ -35,6 +38,12 @@ func End(url string, auth string, batchId string) (response *EndBatchResp, err e
 	err = json.Unmarshal(respBody, &respMap)
 	if err != nil {
 		return nil, err
+	}
+	if respMap.Code != 200 {
+		return nil, fmt.Errorf("batch end failed with error code: %d. error message: %s", respMap.Code, respMap.Message)
+	}
+	if respMap.Data == nil {
+		return nil, fmt.Errorf("error processing the response from the server, response: %v", respMap.Data)
 	}
 	return respMap, nil
 }
@@ -54,6 +63,9 @@ func Begin(url string, auth string, batchId string) (response *BeginBatchResp, e
 	if err != nil {
 		return nil, err
 	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error processing request, http code: %d, http status: %s", resp.StatusCode, resp.Status)
+	}
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
@@ -62,6 +74,12 @@ func Begin(url string, auth string, batchId string) (response *BeginBatchResp, e
 	err = json.Unmarshal(respBody, &respMap)
 	if err != nil {
 		return nil, err
+	}
+	if respMap.Code != 200 {
+		return nil, fmt.Errorf("batch begin failed with error code: %d, error message: %s, error status: %s", respMap.Code, respMap.Message, respMap.Status)
+	}
+	if respMap.Data == nil || len(respMap.Data.BatchId) == 0 {
+		return nil, fmt.Errorf("batch begin returned an invalid batch id.  response from server: %v", respMap.Data)
 	}
 	return respMap, nil
 
@@ -80,6 +98,9 @@ func Show(url string, auth string, batchId string) (response *ShowBatchResp, err
 	if err != nil {
 		return nil, err
 	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error processing request, http code: %d, http status: %s", resp.StatusCode, resp.Status)
+	}
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
@@ -88,6 +109,12 @@ func Show(url string, auth string, batchId string) (response *ShowBatchResp, err
 	err = json.Unmarshal(respBody, &respMap)
 	if err != nil {
 		return nil, err
+	}
+	if respMap.Code != 200 {
+		return nil, fmt.Errorf("batch show failed with error code: %d. error message: %s", respMap.Code, respMap.Message)
+	}
+	if respMap.Data == nil {
+		return nil, fmt.Errorf("error processing the response from the server, response: %v", respMap.Data)
 	}
 	return respMap, nil
 }
@@ -106,6 +133,9 @@ func Cancel(url string, auth string, batchId string) (response *CancelBatchResp,
 	if err != nil {
 		return nil, err
 	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error processing request, http code: %d, http status: %s", resp.StatusCode, resp.Status)
+	}
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
@@ -115,11 +145,17 @@ func Cancel(url string, auth string, batchId string) (response *CancelBatchResp,
 	if err != nil {
 		return nil, err
 	}
+	if respMap.Code != 200 {
+		return nil, fmt.Errorf("batch cancel failed with error code: %d. error message: %s", respMap.Code, respMap.Message)
+	}
+	if respMap.Data == nil {
+		return nil, fmt.Errorf("error processing the response from the server, response: %v", respMap.Data)
+	}
 	return respMap, nil
 }
 
 // String Overrides the toString func for showBatchData to pretty print data for user consumption
-func (d showBatchData) String() (string, error) {
+func (d ShowBatchData) String() (string, error) {
 	fmtUploadTime, err := formatTime(d.UploadTimeSecs)
 	if err != nil {
 		return "", err
