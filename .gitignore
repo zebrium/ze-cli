@@ -2,3 +2,4 @@
 dist/
 .idea
 .tools
+.DS_Store
