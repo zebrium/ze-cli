@@ -324,3 +324,41 @@ func TestGenerateMetadataBatching(t *testing.T) {
 		}
 	}
 }
+
+func TestGenerateMetadataSVG(t *testing.T) {
+	testCases := []struct {
+		ids      string
+		svggrp   string
+		expected string
+	}{
+		{
+			ids:      "",
+			svggrp:   "",
+			expected: "default",
+		},
+		{
+			ids:      "",
+			svggrp:   "test123",
+			expected: "test123",
+		},
+		{
+			ids:      "ze_deployment_name=test123",
+			svggrp:   "",
+			expected: "test123",
+		},
+		{
+			ids:      "ze_deployment_name=test123",
+			svggrp:   "test1234",
+			expected: "test1234",
+		},
+	}
+	for i, tc := range testCases {
+		metadata, _, _, err := generateMetadata(url, auth, "", "", "", tc.svggrp, "", tc.ids, "", "", "", false, "")
+		if err != nil {
+			t.Fatalf("test case %d generated unexpected error: %v", i, err)
+		}
+		if metadata.Ids["ze_deployment_name"] != tc.expected {
+			t.Fatalf("test case %d failed to match expected result expected: %s  actual: %s", i, tc.expected, metadata.Ids["ze_deployment_name"])
+		}
+	}
+}

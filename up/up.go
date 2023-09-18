@@ -192,8 +192,13 @@ func generateMetadata(url string, auth string, file string, logtype string, host
 	if len(host) != 0 {
 		metadata.Ids["zid_host"] = host
 	}
+
 	if len(svcgrp) != 0 {
 		metadata.Ids["ze_deployment_name"] = svcgrp
+	}
+
+	if len(metadata.Ids["ze_deployment_name"]) == 0 {
+		metadata.Ids["ze_deployment_name"] = "default"
 	}
 	// Generate a new batch upload if needed
 	if !disableBatch && len(updatedBatchId) == 0 && !strings.Contains(cfgs, "ze_batch_id") {
