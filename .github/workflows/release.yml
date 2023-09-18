@@ -22,7 +22,7 @@ jobs:
       - uses: anchore/sbom-action/download-syft@v0.14.3 # installs syft
       - run: go mod tidy
       - run: go test -v ./...
-      - uses: goreleaser/goreleaser-action@v4
+      - uses: goreleaser/goreleaser-action@v5
         with:
           # either 'goreleaser' (default) or 'goreleaser-pro'
           distribution: goreleaser
