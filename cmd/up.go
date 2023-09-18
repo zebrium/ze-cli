@@ -48,7 +48,7 @@ func init() {
 	upCmd.Flags().StringP("file", "f", "", "File path to upload")
 	upCmd.Flags().StringP("log", "l", "", "Logtype of file being uploaded.  Set to 'stream' if using STDIN.  Defaults to base name from file")
 	upCmd.Flags().String("host", "", "Hostname or other identifier representing the source of the file being uploaded")
-	upCmd.Flags().String("svcgrp", "default", "Defines a failure domain boundary for anomaly correlation. Learn more: https://docs.zebrium.com/docs/concepts/service-group")
+	upCmd.Flags().String("svcgrp", "default", "Defines a failure domain boundary for anomaly correlation. Learn more: https://docs.sciencelogic.com/zebrium/latest/Content/Web_Zebrium/Key_Concepts.html#service-groups")
 	upCmd.Flags().String("dtz", "", "Time zone of the Logs")
 	upCmd.Flags().String("ids", "", "Comma seperated list of key-value pairs of ids to add.  eg: name1=val1,name2=val2")
 	upCmd.Flags().String("cfgs", "", "Comma seperated list of key-value pairs of cfgs to add.  eg: name1=val1,name2=val2")
