@@ -7,7 +7,7 @@ require (
 	github.com/goreleaser/goreleaser v1.20.0
 	golang.org/x/tools v0.13.0
 	golang.org/x/vuln v1.0.1
-	gotest.tools/gotestsum v1.10.1
+	gotest.tools/gotestsum v1.11.0
 )
 
 require (
@@ -88,6 +88,7 @@ require (
 	github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.0.0-20220517224237-e6f29200ae04 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/bitfield/gotestdox v0.2.1 // indirect
 	github.com/bkielbasa/cyclop v1.2.1 // indirect
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb // indirect
 	github.com/blizzy78/varnamelen v0.8.0 // indirect
@@ -243,7 +244,7 @@ require (
 	github.com/maratori/testpackage v1.1.1 // indirect
 	github.com/matoous/godox v0.0.0-20230222163458-006bad1f9d26 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.18 // indirect
+	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/mattn/go-mastodon v0.0.6 // indirect
 	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
