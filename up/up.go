@@ -24,8 +24,9 @@ func UploadFile(url string, auth string, file string, logtype string, host strin
 	dtz string, ids string, cfgs string, tags string, batchId string, disableBatch bool, logstash bool,
 	version string) (err error) {
 
+	var existingBatch bool = false
 	defer func() {
-		if err != nil {
+		if err != nil && !existingBatch {
 			cleanUpBatchOnExit(batchId)
 		}
 	}()
