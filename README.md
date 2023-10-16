@@ -21,7 +21,7 @@ precedence: Config File -> Env Files -> Command Line Args
 
 ### Configuration File
 
- The ze cli tool does support setting global variables in a .ze.yaml file for easy 
+ The ze cli tool does support setting global variables in a .ze file for easy 
  configuration. The default location of this is `$HOME/.ze`, however this can overriden
  with passing a new path with the `--config` option. The contents of that file is as follows:
 
