@@ -137,10 +137,10 @@ func createMap(in string) (result map[string]string) {
 // cleanUpBatchOnExit Helper function to clean up autogenerate batchId's on error of exit
 func cleanUpBatchOnExit(batchId string) {
 	if len(batchId) != 0 {
-		_, err := batch.Cancel(viper.GetString("url"), viper.GetString("auth"), batchId)
-		if err != nil {
-			fmt.Println(err)
-		}
+		//_, err := batch.Cancel(viper.GetString("url"), viper.GetString("auth"), batchId)
+		//if err != nil {
+		//	fmt.Println(err)
+		//}
 		fmt.Printf("Unable to cleanly exit on Error.  Will need to clean up Batch ID: %s\n", batchId)
 	}
 }
