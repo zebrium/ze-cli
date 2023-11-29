@@ -6,13 +6,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/spf13/viper"
-	"github.com/zebrium/ze-cli/batch"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/zebrium/ze-cli/batch"
 )
 
 var tokenPath = "log/api/v2/token"
@@ -25,9 +25,10 @@ func UploadFile(url string, auth string, file string, logtype string, host strin
 	version string) (err error) {
 
 	var existingBatch bool = false
+	var updatedBatchId = batchId
 	defer func() {
 		if err != nil && !existingBatch {
-			cleanUpBatchOnExit(batchId)
+			cleanUpBatchOnExit(updatedBatchId, url, auth)
 		}
 	}()
 
@@ -57,6 +58,11 @@ func UploadFile(url string, auth string, file string, logtype string, host strin
 	if err != nil {
 		return err
 	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("error processing request, http code: %d, http status: %s", resp.StatusCode, resp.Status)
+	}
+
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
@@ -64,7 +70,6 @@ func UploadFile(url string, auth string, file string, logtype string, host strin
 	tokenResp := &TokenResp{}
 	err = json.Unmarshal(respBody, &tokenResp)
 	if err != nil {
-		cleanUpBatchOnExit(batchId)
 		return err
 	}
 	uploadAuth := tokenResp.Token
@@ -83,6 +88,10 @@ func UploadFile(url string, auth string, file string, logtype string, host strin
 	_, err = client.Do(req)
 	if err != nil {
 		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("error processing request, http code: %d, http status: %s", resp.StatusCode, resp.Status)
 	}
 
 	// Close batch
@@ -135,9 +144,9 @@ func createMap(in string) (result map[string]string) {
 }
 
 // cleanUpBatchOnExit Helper function to clean up autogenerate batchId's on error of exit
-func cleanUpBatchOnExit(batchId string) {
+func cleanUpBatchOnExit(batchId string, url string, auth string) {
 	if len(batchId) != 0 {
-		_, err := batch.Cancel(viper.GetString("url"), viper.GetString("auth"), batchId)
+		_, err := batch.Cancel(url, auth, batchId)
 		if err != nil {
 			fmt.Println(err)
 		}

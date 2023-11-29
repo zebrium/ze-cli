@@ -3,10 +3,13 @@ package up
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/zebrium/ze-cli/batch"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+
+	"github.com/zebrium/ze-cli/batch"
 )
 
 var url = "https://test.local"
@@ -292,7 +295,7 @@ func TestGenerateMetadataBatching(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			_, err := w.Write(byteResponse)
 			if err != nil {
-				t.Fatalf("encountered error when one wasnt expected in tc: %d, Error: %v", i, err)
+				t.Fatalf("encountered error when one wasn't expected in tc: %d, Error: %v", i, err)
 			}
 
 		}))
@@ -307,7 +310,7 @@ func TestGenerateMetadataBatching(t *testing.T) {
 			}
 		} else {
 			if err != nil {
-				t.Fatalf("encountered error when one wasnt expected in tc: %d, Error: %v", i, err)
+				t.Fatalf("encountered error when one wasn't expected in tc: %d, Error: %v", i, err)
 			}
 		}
 		if existing != tc.existingBatch {
@@ -360,5 +363,127 @@ func TestGenerateMetadataSVG(t *testing.T) {
 		if metadata.Ids["ze_deployment_name"] != tc.expected {
 			t.Fatalf("test case %d failed to match expected result expected: %s  actual: %s", i, tc.expected, metadata.Ids["ze_deployment_name"])
 		}
+	}
+}
+
+func TestUpErrorHandling(t *testing.T) {
+	host := "testMachine"
+	svg := "test"
+	dtz := ""
+	ids := ""
+	tags := ""
+	testCases := []struct {
+		file                string
+		logtype             string
+		cfgs                string
+		batchId             string
+		logstash            bool
+		disableBatch        bool
+		uploadTokenResponse TokenResp
+		uploadTokenStatus   int
+		uploadPostStatus    int
+		expectedBatchCancel bool
+		expectedFail        bool
+		existingBatch       bool
+	}{
+		{
+			file:                "",
+			logtype:             "",
+			cfgs:                "",
+			batchId:             "batch-1234",
+			logstash:            false,
+			disableBatch:        false,
+			uploadTokenResponse: TokenResp{Token: "token1234"},
+			uploadTokenStatus:   http.StatusOK,
+			uploadPostStatus:    http.StatusOK,
+			expectedBatchCancel: false,
+			expectedFail:        false,
+			existingBatch:       true,
+		},
+		{
+			file:                "",
+			logtype:             "",
+			cfgs:                "",
+			batchId:             "batch-1234",
+			logstash:            false,
+			disableBatch:        false,
+			uploadTokenResponse: TokenResp{Token: "token1234"},
+			uploadTokenStatus:   http.StatusServiceUnavailable,
+			uploadPostStatus:    http.StatusOK,
+			expectedBatchCancel: false,
+			expectedFail:        true,
+			existingBatch:       true,
+		},
+		{
+			file:                "",
+			logtype:             "",
+			cfgs:                "",
+			batchId:             "batch-1234",
+			logstash:            false,
+			disableBatch:        false,
+			uploadTokenResponse: TokenResp{Token: "token1234"},
+			uploadTokenStatus:   http.StatusOK,
+			uploadPostStatus:    http.StatusServiceUnavailable,
+			expectedBatchCancel: false,
+			expectedFail:        true,
+			existingBatch:       true,
+		},
+	}
+
+	for i, tc := range testCases {
+		server := httptest.NewServer(http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			switch req.URL.Path {
+			// Batch Request Calls
+			case fmt.Sprintf("/%s/%s", batchURL, tc.batchId):
+				switch req.Method {
+				case http.MethodPost:
+					t.Errorf("unimplemented method")
+				case http.MethodPut:
+					reqBody, err := io.ReadAll(req.Body)
+					if err != nil {
+						t.Fatalf("encountered error when one wasn't expected in tc: %d, Error: %v", i, err)
+					}
+					if strings.Contains(string(reqBody), "cancel") {
+						if !tc.expectedBatchCancel {
+							t.Fatalf("called batch cancel when it was not supposed too")
+							t.Fail()
+						}
+					}
+					resp.WriteHeader(tc.uploadTokenStatus)
+				default:
+					t.Errorf("unsupported method %s called", req.Method)
+				}
+			// Call Token Request
+			case fmt.Sprintf("/%s", tokenPath):
+				byteResponse, _ := json.Marshal(tc.uploadTokenResponse)
+				resp.WriteHeader(tc.uploadTokenStatus)
+				_, err := resp.Write(byteResponse)
+				if err != nil {
+					t.Fatalf("encountered error when one wasn't expected in tc: %d, Error: %v", i, err)
+				}
+			//Upload Logstash
+			case fmt.Sprintf("/%s", logstashPath):
+				resp.WriteHeader(tc.uploadPostStatus)
+			//Upload Post
+			case fmt.Sprintf("/%s", postPath):
+				resp.WriteHeader(tc.uploadPostStatus)
+			default:
+				t.Errorf("called unimplemented method %s", req.RequestURI)
+			}
+		}))
+		err := UploadFile(server.URL, auth, tc.file, tc.logtype, host, svg, dtz, ids, tc.cfgs, tags, tc.batchId, tc.disableBatch, tc.logstash, "test")
+		if tc.expectedFail {
+			if err == nil {
+				t.Fatalf("failed to encounter error when one was expected in tc: %d, Error: %v", i, err)
+			} else {
+				server.Close()
+				continue
+			}
+		} else {
+			if err != nil {
+				t.Fatalf("encountered error when one wasn't expected in tc: %d, Error: %v", i, err)
+			}
+		}
+		server.Close()
 	}
 }
