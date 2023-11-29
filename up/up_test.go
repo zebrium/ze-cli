@@ -527,7 +527,10 @@ func TestUpErrorHandling(t *testing.T) {
 						Message: "Ok", Code: http.StatusOK, Status: "Ok", Data: &batch.BatchBeginDataResp{BatchId: tc.generatedBatchId},
 					}
 					byteResponse, _ := json.Marshal(batchResponse)
-					resp.Write(byteResponse)
+					_, err := resp.Write(byteResponse)
+					if err != nil {
+						t.Fatalf("encountered error when one wasn't expected in tc: %d, Error: %v", i, err)
+					}
 				// Batch End or Batch Cancel
 				case http.MethodPut:
 					reqBody, err := io.ReadAll(req.Body)
@@ -545,7 +548,10 @@ func TestUpErrorHandling(t *testing.T) {
 							Code: tc.batchCancelStatus, Status: http.StatusText(tc.batchCancelStatus), Message: "", Data: &batch.CancelBatchData{BatchID: tcBatchID, State: "cancelled"},
 						}
 						byteResponse, _ := json.Marshal(batchResponse)
-						resp.Write(byteResponse)
+						_, err := resp.Write(byteResponse)
+						if err != nil {
+							t.Fatalf("encountered error when one wasn't expected in tc: %d, Error: %v", i, err)
+						}
 
 					} else {
 						if !tc.expectingBatchEnd {
@@ -557,7 +563,10 @@ func TestUpErrorHandling(t *testing.T) {
 								Message: http.StatusText(tc.batchEndStatus), Code: tc.batchEndStatus, Data: &batch.EndBatchData{BatchID: tcBatchID, State: "Processing"},
 							}
 							byteResponse, _ := json.Marshal(batchResponse)
-							resp.Write(byteResponse)
+							_, err := resp.Write(byteResponse)
+							if err != nil {
+								t.Fatalf("encountered error when one wasn't expected in tc: %d, Error: %v", i, err)
+							}
 						}
 					}
 				default:
@@ -574,7 +583,10 @@ func TestUpErrorHandling(t *testing.T) {
 						Message: "Ok", Code: http.StatusOK, Status: "Ok", Data: &batch.BatchBeginDataResp{BatchId: tc.generatedBatchId},
 					}
 					byteResponse, _ := json.Marshal(batchResponse)
-					resp.Write(byteResponse)
+					_, err := resp.Write(byteResponse)
+					if err != nil {
+						t.Fatalf("encountered error when one wasn't expected in tc: %d, Error: %v", i, err)
+					}
 				default:
 					t.Fatalf("unsupported method %s called", req.Method)
 					t.Fail()
