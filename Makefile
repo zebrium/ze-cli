@@ -58,7 +58,7 @@ gomoddownload:
 	cd $(TOOLS_MOD_DIR) && $(GOCMD) mod download -x
 .PHONY: build
 build:
-	$(GORELEASER) build  --clean --skip-validate --snapshot
+	$(GORELEASER) build  --clean --skip=validate --snapshot
 .PHONY: cleanup
 cleanup:
 	if [ -d  $(TOOLS_BIN_DIR) ]; then rm -r $(TOOLS_BIN_DIR); fi

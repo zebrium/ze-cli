@@ -123,7 +123,7 @@ func TestCancelBatch(t *testing.T) {
 	}{
 		{
 			batchResponse: CancelBatchResp{
-				Data: &cancelBatchData{
+				Data: &CancelBatchData{
 					BatchID: batchId,
 					State:   "Canceled",
 				},
@@ -136,7 +136,7 @@ func TestCancelBatch(t *testing.T) {
 		},
 		{
 			batchResponse: CancelBatchResp{
-				Data: &cancelBatchData{
+				Data: &CancelBatchData{
 					BatchID: batchId,
 					State:   "Canceled",
 				},
@@ -149,7 +149,7 @@ func TestCancelBatch(t *testing.T) {
 		},
 		{
 			batchResponse: CancelBatchResp{
-				Data: &cancelBatchData{
+				Data: &CancelBatchData{
 					BatchID: batchId,
 					State:   "Canceled",
 				},
@@ -230,7 +230,7 @@ func TestEndBatch(t *testing.T) {
 	}{
 		{
 			batchResponse: EndBatchResp{
-				Data: &endBatchData{
+				Data: &EndBatchData{
 					BatchID: batchId,
 					State:   "Canceled",
 				},
@@ -243,7 +243,7 @@ func TestEndBatch(t *testing.T) {
 		},
 		{
 			batchResponse: EndBatchResp{
-				Data: &endBatchData{
+				Data: &EndBatchData{
 					BatchID: batchId,
 					State:   "Canceled",
 				},
@@ -256,7 +256,7 @@ func TestEndBatch(t *testing.T) {
 		},
 		{
 			batchResponse: EndBatchResp{
-				Data: &endBatchData{
+				Data: &EndBatchData{
 					BatchID: batchId,
 					State:   "Canceled",
 				},
