@@ -85,7 +85,7 @@ func UploadFile(url string, auth string, file string, logtype string, host strin
 
 	req.Header.Add("Authorization", fmt.Sprintf("Token %s", uploadAuth))
 	req.Close = true
-	_, err = client.Do(req)
+	resp, err = client.Do(req)
 	if err != nil {
 		return err
 	}
