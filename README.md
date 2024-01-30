@@ -95,6 +95,10 @@ ZE_URL = <ZE_LOG_COLLECTOR_URL>
 ZE_AUTH = <ZE_LOG_COLLECTOR_TOKEN>
 ```
 
+## Issues
+
+If you are having issues or need assistance with your Zebrium deployment or POC, please reach out to <support@zebrium.com>  If you are reporting a bug in the software, then feel free to open an issues on this repository  For Security Issues, please see [SECURITY.md](SECURITY.md)
+
 ## Contributors
 
 * Braeden Earp (ScienceLogic)
