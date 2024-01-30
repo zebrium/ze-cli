@@ -54,7 +54,7 @@ func ValidateUpMetadata(filename string, logype string, logstash bool, batchId s
 	// Make sure log type is specified
 	if len(filename) == 0 {
 		if len(logype) == 0 && !logstash {
-			return errors.New("error: logtype must be specified for streaming with --logtype")
+			return errors.New("error: logtype must be specified for streaming with --log")
 		}
 	}
 
@@ -74,10 +74,10 @@ func ValidateBatchId(batchId string) error {
 		return err
 	}
 	if !result {
-		return fmt.Errorf("BatchId %s contains invalid characters.  Must contain alphanumberic characters, '_' and '-'", batchId)
+		return fmt.Errorf("BatchId %s contains invalid characters.  Must contain alphanumeric characters, '_' and '-'", batchId)
 	}
 	if len(batchId) > 36 {
-		return fmt.Errorf("BatchId: %s excceds the max length of 36 characters", batchId)
+		return fmt.Errorf("BatchId: %s exceeds the max length of 36 characters", batchId)
 	}
 	return nil
 }
