@@ -1,4 +1,4 @@
-// Package cmd Copyright © 2023 ScienceLogic Inc
+// Package cmd Copyright © 2024 ScienceLogic Inc
 package cmd
 
 import (

@@ -1,3 +1,5 @@
+// Package up Copyright © 2024 ScienceLogic Inc
+
 package up
 
 import (

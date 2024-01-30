@@ -1,4 +1,4 @@
-// Package common Copyright © 2023 ScienceLogic Inc
+// Package common Copyright © 2024 ScienceLogic Inc
 package common
 
 import (
