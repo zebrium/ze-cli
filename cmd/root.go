@@ -1,4 +1,4 @@
-// Package cmd Copyright © 2023 ScienceLogic Inc
+// Package cmd Copyright © 2024 ScienceLogic Inc
 package cmd
 
 import (
@@ -10,7 +10,7 @@ import (
 )
 
 var cfgFile string
-var version = "2.1.3"
+var version = "2.2.0"
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -32,8 +32,8 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.ze.yaml)")
-	rootCmd.PersistentFlags().StringP("url", "u", "https://cloud.zebrium.com", "Zapi endpoint.")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.ze)")
+	rootCmd.PersistentFlags().StringP("url", "u", "https://cloud.zebrium.com", "zapi endpoint.")
 	rootCmd.PersistentFlags().StringP("auth", "a", "", "Zebrium authentication token.  Can be found under Integrations & Collectors in the Zebrium UI ")
 	rootCmd.PersistentFlags().StringP("api", "t", "", "Zebrium API token.  Can be found under Access Tokens in the Zebrium UI")
 	err := viper.BindPFlags(rootCmd.PersistentFlags())
@@ -41,7 +41,6 @@ func init() {
 		println(err)
 		os.Exit(1)
 	}
-
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -49,6 +48,8 @@ func initConfig() {
 	if len(cfgFile) != 0 {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
+		viper.SetConfigType("yaml")
+
 	} else {
 		// Find home directory.
 		home, err := os.UserHomeDir()
