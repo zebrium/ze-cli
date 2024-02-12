@@ -6,7 +6,7 @@ require (
 	github.com/golangci/golangci-lint v1.56.1
 	github.com/goreleaser/goreleaser v1.24.0
 	golang.org/x/tools v0.17.0
-	golang.org/x/vuln v1.0.3
+	golang.org/x/vuln v1.0.4
 	gotest.tools/gotestsum v1.11.0
 )
 
