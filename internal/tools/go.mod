@@ -5,8 +5,8 @@ go 1.21
 require (
 	github.com/golangci/golangci-lint v1.58.2
 	github.com/goreleaser/goreleaser v1.25.1
-	golang.org/x/tools v0.21.0
-	golang.org/x/vuln v1.1.0
+	golang.org/x/tools v0.21.1-0.20240514024235-59d9797072e7
+	golang.org/x/vuln v1.1.1
 	gotest.tools/gotestsum v1.11.0
 )
 
