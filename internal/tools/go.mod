@@ -134,7 +134,7 @@ require (
 	github.com/dnephin/pflag v1.0.7 // indirect
 	github.com/docker/cli v25.0.4+incompatible // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
-	github.com/docker/docker v25.0.5+incompatible // indirect
+	github.com/docker/docker v26.1.4+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.8.0 // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
@@ -264,6 +264,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
+	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moricho/tparallel v0.3.1 // indirect
 	github.com/muesli/mango v0.1.0 // indirect
 	github.com/muesli/mango-cobra v1.2.0 // indirect
